@@ -1,0 +1,70 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows10.0.17763.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>annotations</Nullable>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <PlatformTarget>x64</PlatformTarget>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <AssemblyName>CFIT.SimConnectLib</AssemblyName>
+    <RootNamespace>CFIT.SimConnectLib</RootNamespace>
+    <Title>CFIT - SimConnectLib</Title>
+    <Company>Fragtality</Company>
+    <Authors>Fragtality</Authors>
+    <Product>CFIT - SimConnectLib</Product>
+    <Description>Common Fragtality Installer and Tools - SimConnect Library</Description>
+    <Copyright>Copyright © 2025</Copyright>
+    <PackageProjectUrl>https://github.com/Fragtality/CFIT</PackageProjectUrl>
+    <PackageReadmeFile>readme.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/Fragtality/CFIT</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+	<UseWpf>true</UseWpf>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CFIT.AppLogger" Version="2025.57.23.2755" />
+    <PackageReference Include="CFIT.AppTools" Version="2025.57.23.2762" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Microsoft.FlightSimulator.SimConnect">
+      <HintPath>Microsoft.FlightSimulator.SimConnect.dll</HintPath>
+	  <Pack>false</Pack>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Microsoft.FlightSimulator.SimConnect.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  <Pack>False</Pack>
+	  <PackagePath>\lib\net8.0-windows10.0.17763</PackagePath>
+    </None>
+    <None Update="readme.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Update="SimConnect.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  <Pack>True</Pack>
+	  <PackagePath>\lib\net8.0-windows10.0.17763</PackagePath>
+    </None>
+  </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="pwsh -ExecutionPolicy Unrestricted -file &quot;..\NuBuild.ps1&quot; $(SolutionDir) $(TargetDir) &quot;$(Configuration)&quot; &quot;SimConnectLib&quot;" />
+  </Target>
+
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Exec Command="pwsh -ExecutionPolicy Unrestricted -file &quot;..\NuUpdate.ps1&quot; $(SolutionDir) $(TargetDir) &quot;$(Configuration)&quot; &quot;SimConnectLib&quot; &quot;CFIT.AppLogger&quot; &quot;CFIT.AppTools&quot;" />
+  </Target>
+
+</Project>

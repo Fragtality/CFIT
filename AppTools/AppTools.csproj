@@ -1,0 +1,49 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net48-windows10.0.17763.0;net8.0-windows10.0.17763.0</TargetFrameworks>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AssemblyName>CFIT.AppTools</AssemblyName>
+    <RootNamespace>CFIT.AppTools</RootNamespace>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <PlatformTarget>x64</PlatformTarget>
+    <Title>CFIT - AppTools</Title>
+    <Product>CFIT - AppTools</Product>
+    <Authors>Fragtality</Authors>
+    <Company>Fragtality</Company>
+    <Description>Common Fragtality Installer and Tools - Common App Tools</Description>
+    <Copyright>Copyright © 2025</Copyright>
+    <PackageProjectUrl>https://github.com/Fragtality/CFIT</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Fragtality/CFIT</RepositoryUrl>
+    <PackageReadmeFile>readme.md</PackageReadmeFile>
+    <RepositoryType>git</RepositoryType>
+    <AllowUnsafeBlocks>False</AllowUnsafeBlocks>
+	<UseWpf>true</UseWpf>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CFIT.AppLogger" Version="2025.57.23.2755" />
+    <PackageReference Include="System.Text.Json" Version="9.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+        <None Include="readme.md" Pack="true" PackagePath="" />
+    </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="pwsh -ExecutionPolicy Unrestricted -file &quot;..\NuBuild.ps1&quot; $(SolutionDir) $(TargetDir) &quot;$(Configuration)&quot; &quot;AppTools&quot;" />
+  </Target>
+
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Exec Command="pwsh -ExecutionPolicy Unrestricted -file &quot;..\NuUpdate.ps1&quot; $(SolutionDir) $(TargetDir) &quot;$(Configuration)&quot; &quot;AppTools&quot; &quot;CFIT.AppLogger&quot;" />
+  </Target>
+
+</Project>

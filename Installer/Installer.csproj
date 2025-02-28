@@ -1,0 +1,80 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+	<TargetFrameworks>net48-windows10.0.17763.0;net8.0-windows10.0.17763.0</TargetFrameworks>
+    <NuGetAuditMode>direct</NuGetAuditMode>
+    <PlatformTarget>x64</PlatformTarget>
+    <Company>Fragtality</Company>
+    <Authors>Fragtality</Authors>
+    <Title>CFIT - Installer</Title>
+    <AssemblyName>CFIT.Installer</AssemblyName>
+    <RootNamespace>CFIT.Installer</RootNamespace>
+    <Product>CFIT - Installer</Product>
+    <Description>Common Fragtality Installer and Tools - Installer Package</Description>
+    <Copyright>Copyright © 2025</Copyright>
+    <PackageReadmeFile>readme.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/Fragtality/CFIT</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+	<UseWPF>true</UseWPF>
+	<Platforms>AnyCPU</Platforms>
+	<Version></Version>
+	<AssemblyVersion></AssemblyVersion>
+	<FileVersion></FileVersion>
+	<PackageProjectUrl>https://github.com/Fragtality/CFIT</PackageProjectUrl>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net48-windows10.0.17763.0|AnyCPU'">
+    <IsPublishable>True</IsPublishable>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net8.0-windows10.0.17763.0|AnyCPU'">
+    <IsPublishable>True</IsPublishable>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net48-windows10.0.17763.0|AnyCPU'">
+    <IsPublishable>True</IsPublishable>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net8.0-windows10.0.17763.0|AnyCPU'">
+    <IsPublishable>True</IsPublishable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="icons\body-text.png" />
+    <EmbeddedResource Include="icons\box-arrow-in-right.png" />
+    <EmbeddedResource Include="icons\check-square.png" />
+    <EmbeddedResource Include="icons\trash.png" />
+    <EmbeddedResource Include="icons\x-square.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CFIT.AppLogger" Version="2025.57.23.2755" />
+    <PackageReference Include="CFIT.AppTools" Version="2025.57.23.2762" />
+    <PackageReference Include="System.IO.Compression" Version="4.3.0" />
+    <PackageReference Include="System.IO.Compression.ZipFile" Version="4.3.0" />
+    <PackageReference Include="System.Net.Http" Version="4.3.4" />
+    <PackageReference Include="System.Private.Uri" Version="4.3.2" />
+    <PackageReference Include="System.Text.Json" Version="9.0.2" />
+  </ItemGroup>
+
+    <ItemGroup>
+        <None Include="readme.md" Pack="true" PackagePath="" />
+    </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="pwsh -ExecutionPolicy Unrestricted -file &quot;..\NuBuild.ps1&quot; $(SolutionDir) $(TargetDir) &quot;$(Configuration)&quot; &quot;Installer&quot; " />
+  </Target>
+
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Exec Command="pwsh -ExecutionPolicy Unrestricted -file &quot;..\NuUpdate.ps1&quot; $(SolutionDir) $(TargetDir) &quot;$(Configuration)&quot; &quot;Installer&quot; &quot;CFIT.AppLogger&quot; &quot;CFIT.AppTools&quot;" />
+  </Target>
+
+</Project>

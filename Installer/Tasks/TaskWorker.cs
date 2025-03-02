@@ -86,7 +86,7 @@ namespace CFIT.Installer.Tasks
             IsRunning = false;
             HasFinished = true;
             Model.IsCompleted = true;
-            Model.IsSuccess = IsSuccess || (IgnoreFailed && IsFailed);
+            Model.IsSuccess = IsSuccess || IgnoreFailed;
             if (doRun)
                 Logger.Debug($"Task '{Model.Title}' finished!");
             else

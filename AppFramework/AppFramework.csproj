@@ -43,11 +43,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="CFIT.AppLogger" Version="2025.57.23.2755" />
-    <PackageReference Include="CFIT.AppTools" Version="2025.57.23.2762" />
-    <PackageReference Include="CFIT.SimConnectLib" Version="2025.57.23.2781" />
+    <PackageReference Include="CFIT.AppLogger" Version="2025.61.15.512" />
+    <PackageReference Include="CFIT.AppTools" Version="2025.61.15.523" />
+    <PackageReference Include="CFIT.SimConnectLib" Version="2025.61.15.544" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
-    <PackageReference Include="H.NotifyIcon.Wpf" Version="2.2.0">
+    <PackageReference Include="H.NotifyIcon.Wpf" Version="2.3.0">
 	  <Pack>false</Pack>
 	</PackageReference>
   </ItemGroup>

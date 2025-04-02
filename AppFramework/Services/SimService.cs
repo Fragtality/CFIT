@@ -16,6 +16,8 @@ namespace CFIT.AppFramework.Services
     {
         public virtual SimConnectController Controller { get; }
         public virtual SimConnectManager Manager { get { return Controller.SimConnect; } }
+        public virtual bool IsMsfs2020 => Controller.IsMsfs2020Running;
+        public virtual bool IsMsfs2024 => Controller.IsMsfs2024Running;
 
         public SimService(TConfig config) : base(config)
         {

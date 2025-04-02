@@ -15,7 +15,9 @@ namespace CFIT.SimConnectLib
         public virtual int CheckInterval { get; } = config.CheckInterval;
         public virtual CancellationToken Token { get; protected set; } = token;
         public virtual bool WaitForSim { get; } = waitForSim;
-        public virtual bool IsSimRunning { get { return Sys.GetProcessRunning(Config.BinaryMsfs2020) || Sys.GetProcessRunning(Config.BinaryMsfs2024); } }
+        public virtual bool IsSimRunning => IsMsfs2020Running || IsMsfs2024Running;
+        public virtual bool IsMsfs2020Running => Sys.GetProcessRunning(Config.BinaryMsfs2020);
+        public virtual bool IsMsfs2024Running => Sys.GetProcessRunning(Config.BinaryMsfs2024);
         public virtual bool IsSessionReady { get; protected set; } = false;
         public virtual bool IsCanceled { get; protected set; } = false;
         public virtual bool IsRunning { get; protected set; } = false;

@@ -1,9 +1,22 @@
-﻿using System.Collections.Concurrent;
+﻿using System.Collections;
+using System.Collections.Concurrent;
 
 namespace CFIT.AppTools
 {
     public static class CollectionExt
     {
+        public static bool CheckEnumeratorValid(this IEnumerator enumerator)
+        {
+            try
+            {
+                return enumerator.Current != null;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         public static T Dequeue<T>(this ConcurrentQueue<T> queue)
         {
             if (queue.TryDequeue(out T result))

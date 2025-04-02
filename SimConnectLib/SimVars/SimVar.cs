@@ -125,7 +125,7 @@ namespace CFIT.SimConnectLib.SimVars
                         else if (Type.CastType == SimCastType.FLOAT)
                             value = Convert.ChangeType(value, typeof(float));
                     }
-                    Logger.Debug($"Writing to Variable '{Name}' - Value: {value}");
+                    Logger.Verbose($"Writing to Variable '{Name}' - Value: {value}");
                     Call(sc => sc.SetDataOnSimObject(Id, SimConnect.SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_DATA_SET_FLAG.DEFAULT, value));
                 }
                 catch (Exception ex)

@@ -1,5 +1,5 @@
 ### PRE (Installer)
-### pwsh -ExecutionPolicy Unrestricted -file "$(ProjectDir)PackageApp.ps1" $(SolutionDir) "Installer" "Payload" "APP-PROJECT" "APP-NAME" "publish"
+### pwsh -ExecutionPolicy Unrestricted -file "$(ProjectDir)PackageApp.ps1" $(SolutionDir) "Installer" "Payload" "APP-PROJECT" "APP-NAME" "bin\publish"
 ### add version.json as Embedded Resource
 
 #Exit inner Invocation when invoked with dotnet cli
@@ -21,7 +21,7 @@ $pathProjectInstaller = Join-Path $basePath $args[1]				#1 Installer Project Dir
 $pathPayload = Join-Path $basePath (Join-Path $args[1] $args[2])	#2 Payload Directory for Installer
 $projectName = $args[3]												#3 App Project (Directory) Name
 $appName = $args[4]													#4 App Binary Name
-$pathPublish = Join-Path $basePath $args[5]							#5 Publish Directory of App (to pack for Installer) - relative to base
+$pathPublish = Join-Path (Join-Path $basePath $appName) $args[5]	#5 Publish Directory of App (to pack for Installer) - relative to base
 $binFile = "$appName.exe"
 
 $zipPath = Join-Path $pathPayload "AppPackage.zip"

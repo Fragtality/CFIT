@@ -162,7 +162,24 @@ namespace CFIT.AppTools
         [DllImport("user32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool PostThreadMessage(UIntPtr threadId, UIntPtr msg, IntPtr wParam, IntPtr lParam);
+        [DllImport("user32.dll")]
+        static extern IntPtr GetForegroundWindow();
+        [DllImport("user32.dll")]
+        static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int count);
 #pragma warning restore
+        public static string GetActiveWindowTitle()
+        {
+            const int nChars = 256;
+            StringBuilder Buff = new StringBuilder(nChars);
+            IntPtr handle = GetForegroundWindow();
+
+            if (GetWindowText(handle, Buff, nChars) > 0)
+            {
+                return Buff.ToString();
+            }
+            return null;
+        }
+
         public static int SendWindowMessage(IntPtr hwnd, UIntPtr msg, IntPtr wParam, IntPtr lParam)
         {
             return SendMessage(hwnd, msg, wParam, lParam).ToInt32();

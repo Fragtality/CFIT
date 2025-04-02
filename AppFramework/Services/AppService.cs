@@ -52,7 +52,7 @@ namespace CFIT.AppFramework.Services
 
             Logger.Debug($"Starting MainLoop ...");
             while (IsExecutionAllowed && RunCondition())
-                MainLoop();
+                await MainLoop();
             Logger.Debug($"MainLoop ended. (ExecutionAllowed {IsExecutionAllowed} RunCondition {RunCondition()})");
 
             StopServiceControllers();
@@ -68,7 +68,7 @@ namespace CFIT.AppFramework.Services
             }
         }
 
-        protected abstract void MainLoop();
+        protected abstract Task MainLoop();
 
         protected virtual void StartServiceControllers()
         {

@@ -23,7 +23,7 @@ namespace CFIT.Installer.Product
         public abstract string ProductName { get; }
         public virtual string ProductBinary { get { return ProductName; } }
         public virtual string ProductExe { get { return $"{ProductBinary}.exe"; } }
-        public virtual string ProductConfigFile { get { return $"{ProductName}.config"; } }
+        public virtual string ProductConfigFile { get { return $"AppConfig.json"; } }
         public virtual string ProductConfigPath { get { return Path.Combine(ProductPath, ProductConfigFile); } }
         public virtual string ProductExePath { get { return Path.Combine(ProductPath, ProductExe); } }
         public virtual string ProductPath { get { return $@"{Sys.FolderAppDataRoaming()}\{ProductName}"; } }

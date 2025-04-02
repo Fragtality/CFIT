@@ -98,7 +98,7 @@ namespace CFIT.SimConnectLib.SimEvents
                         return false;
                     }
 
-                    Logger.Debug($"Writing to Event '{Name}' - Values: {string.Join(',', EventValues)}");
+                    Logger.Verbose($"Writing to Event '{Name}' - Values: {string.Join(',', EventValues)}");
                     if (HasMultipleParams)
                         Call(sc => sc.TransmitClientEvent_EX1(SimConnect.SIMCONNECT_OBJECT_ID_USER, Id, GroupId, SIMCONNECT_EVENT_FLAG.DEFAULT,
                             EventValues[0], EventValues[1], EventValues[2], EventValues[3], EventValues[4]));

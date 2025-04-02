@@ -1,4 +1,5 @@
 ﻿using CFIT.AppFramework.AppConfig;
+using CFIT.AppLogger;
 using CFIT.AppTools;
 using CommunityToolkit.Mvvm.Messaging;
 using System;
@@ -45,17 +46,25 @@ namespace CFIT.AppFramework.MessageService
             }, Token);
         }
 
-        public async Task<TMessage> ReceiveAsync(bool clearQueue = false)
+        public async Task<TMessage> ReceiveAsync(bool clearQueue = false, int timeoutMs = int.MaxValue)
         {
             if (clearQueue)
                 Clear();
 
-            while (!IsReceived && !IsCanceled && !Token.IsCancellationRequested)
+            int waitTime = 0;
+            while (!IsReceived && !IsCanceled && !Token.IsCancellationRequested && waitTime < timeoutMs)
             {
                 await Task.Delay(CheckIntervalMs, Token);
+                waitTime += CheckIntervalMs;
             }
 
-            return ReceivedMessages.Dequeue();
+            if (waitTime < timeoutMs)
+                return ReceivedMessages.Dequeue();
+            else
+            {
+                Logger.Debug($"Receiver timed out");
+                return null;
+            }
         }
 
         public virtual void Clear()

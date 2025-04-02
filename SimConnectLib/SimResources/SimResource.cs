@@ -73,7 +73,9 @@ namespace CFIT.SimConnectLib.SimResources
         {
             try
             {
-                if (IsNumeric)
+                if (ValueStore == null)
+                    return default;
+                else if (IsNumeric)
                 {
                     return NumberConverter<T>();
                 }

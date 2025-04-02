@@ -329,7 +329,10 @@ namespace CFIT.SimConnectLib
             catch (Exception ex)
             {
                 SimConnectMutex.TryReleaseMutex();
-                Logger.LogException(ex);
+                if (!QuitReceived)
+                    Logger.LogException(ex);
+                else
+                    Logger.Warning($"{ex.GetType().Name} during SimConnect Call");
             }
 
             return result;

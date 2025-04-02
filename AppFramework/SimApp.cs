@@ -45,6 +45,7 @@ namespace CFIT.AppFramework
         public virtual TService AppService { get; protected set; }
         public virtual CancellationTokenSource TokenSource { get; } = new();
         public virtual CancellationToken Token { get { return TokenSource.Token; } }
+        public abstract int BuildConfigVersion { get; }
         public virtual int ExitCode { get; set; } = 0;
         public virtual bool IsAppShutDown { get; protected set; } = false;
         public virtual Type AppWindowType { get; }
@@ -89,6 +90,7 @@ namespace CFIT.AppFramework
 
         protected virtual void InitConfiguration()
         {
+            AppConfigBase<TDefinition>.BuildConfigVersion = BuildConfigVersion;
             Config = AppConfigBase<TDefinition>.LoadConfiguration<TConfig>() ?? throw new NullReferenceException("AppConfig returned Null Reference!");
             Logger.Information($"Configuration loaded: v{Config.ConfigVersion} Definition: {typeof(TDefinition).Name}");
         }
@@ -106,6 +108,7 @@ namespace CFIT.AppFramework
             string path = args[idx+1];
             if (!Path.IsPathFullyQualified(path))
                 return false;
+            path = Path.Join(path, DefinitionBase.ProductConfigFile);
 
             Console.WriteLine($"Writing Default Config to {path} ...");
             AppConfigBase<TDefinition>.SaveConfiguration(typeof(TConfig).CreateInstance<TConfig>(), path);

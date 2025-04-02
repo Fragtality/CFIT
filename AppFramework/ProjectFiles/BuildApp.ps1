@@ -59,7 +59,7 @@ try {
 	cd $pathProject
 	dotnet publish -p:PublishProfile=FolderProfile$buildConfiguration -c $buildConfiguration --verbosity quiet
 	if ($buildConfiguration -eq "Release") {
-		Remove-Item -Recurse -Force -Path ($pathPublish + "\*.pdb")
+		Remove-Item -Recurse -Force -Path ($pathPublish + "\*.pdb") -ErrorAction SilentlyContinue | Out-Null
 	}
 	
 	

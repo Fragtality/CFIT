@@ -7,6 +7,7 @@ using CFIT.AppLogger;
 using CFIT.AppTools;
 using H.NotifyIcon;
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -15,6 +16,7 @@ using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Threading;
 
 namespace CFIT.AppFramework
 {
@@ -28,6 +30,8 @@ namespace CFIT.AppFramework
         public Window AppWindow { get; }
         public AppMessageService MessageService { get; }
         public bool UpdateDetected { get; }
+        public bool UpdateIsDev { get; }
+        public string UpdateVersion { get; }
 
         public void RequestShutdown(int? exitCode = null);
     }
@@ -55,13 +59,19 @@ namespace CFIT.AppFramework
         public virtual ReceiverStore ReceiverStore { get; protected set; }
         public virtual SimStore SimStore { get; protected set; }
         public virtual bool UpdateDetected { get; protected set; } = false;
-        public virtual Version UpdateVersion { get; protected set; } = new();
+        public virtual bool UpdateIsDev { get; protected set; } = false;
+        public virtual string UpdateVersion { get; protected set; }
         protected virtual bool IsDisposed { get; set; } = false;
         public const string defaultConfigArg = "--writeConfig";
 
 
         public SimApp(Type windowType, Type notifyModelType) : base()
         {
+            if (Definition.SingleInstance && Process.GetProcessesByName(Definition.ProductBinary)?.Length > 1)
+            {
+                throw new ApplicationException($"{Definition.ProductName} is already running!");
+            }
+
             AppWindowType = windowType;
             NotifyIcon = new NotifyIcon(this, notifyModelType);
             Instance = this as TApp;
@@ -117,8 +127,18 @@ namespace CFIT.AppFramework
 
         public virtual int Start(string[] args)
         {
+            if (Definition.SingleInstance && Process.GetProcessesByName(Definition.ProductBinary)?.Length > 1)
+            {
+                throw new ApplicationException($"{Definition.ProductName} is already running!");
+            }
+
             if (CreateDefaultConfig(args))
                 return 0;
+
+            AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
+            TaskScheduler.UnobservedTaskException += UnhandledExceptionHandler;
+            Dispatcher.UnhandledException += UnhandledExceptionHandler;
+            DispatcherUnhandledException += UnhandledExceptionHandler;
 
             InitApplication();
             Logger.Information($"Running Application {Definition.ProductName} ({typeof(TApp).Name}) ...");
@@ -130,7 +150,6 @@ namespace CFIT.AppFramework
         protected override async void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
-            AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
 
             Logger.Information($"OnStartup received. Parsing Arguments (Count: {e?.Args?.Length}) ...");
             ParseArguments(e.Args);
@@ -240,14 +259,37 @@ namespace CFIT.AppFramework
                 if (tag_name.StartsWith('v'))
                     tag_name = tag_name[1..];
 
-                if (Version.TryParse(tag_name, out Version repoVersion) && repoVersion > appVersion)
+                if (Version.TryParse(tag_name, out Version repoVersion))
                 {
-                    UpdateDetected = true;
-                    UpdateVersion = repoVersion;
-                    Logger.Information($"New Version detected: {UpdateVersion.ToString(3)}");
+                    if (repoVersion > appVersion)
+                    {
+                        UpdateDetected = true;
+                        UpdateVersion = repoVersion.ToString(3);
+                        Logger.Information($"New Stable Version detected: {UpdateVersion}");
+                    }
+                    else if (repoVersion == appVersion)
+                    {
+                        if (Definition.ProductVersionCheckDev)
+                        {
+                            json = await client.GetStringAsync(Definition.ProductDevVersionFile);
+                            Logger.Debug($"json received: len {json?.Length}");
+                            node = JsonSerializer.Deserialize<JsonNode>(json);
+                            if (string.Compare(node["Timestamp"]!.ToString(), Definition.ProductTimestamp, StringComparison.InvariantCultureIgnoreCase) > 0)
+                            {
+                                UpdateDetected = true;
+                                UpdateVersion = node["Timestamp"]!.ToString();
+                                UpdateIsDev = true;
+                                Logger.Information($"New Dev Version detected: {UpdateVersion}");
+                            }
+                            else
+                                Logger.Information($"Application up-to-date!");
+                        }
+                        else
+                            Logger.Information($"Application up-to-date!");
+                    }
+                    else
+                        Logger.Debug($"Mismatch of Repo to App Version ({repoVersion} vs. {appVersion})");
                 }
-                else
-                    Logger.Information($"Application up-to-date!");
             }
             catch (Exception ex)
             {
@@ -255,12 +297,26 @@ namespace CFIT.AppFramework
             }
         }
 
-        public virtual void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs args)
+        public virtual void UnhandledExceptionHandler(object sender, EventArgs args)
         {
             Logger.Error("---- APP CRASH ----");
-            Logger.LogException(args.ExceptionObject as Exception);
+            LogAppCrashException(args);
             ExitCode = -1;
             ExecuteShutdown();
+            Logger.CloseAndFlush();
+        }
+
+        protected virtual void LogAppCrashException(EventArgs eventArgs)
+        {
+            if (eventArgs is UnhandledExceptionEventArgs argsUnhandled && argsUnhandled.ExceptionObject is Exception ex)
+                Logger.LogException(ex);
+            else if (eventArgs is UnobservedTaskExceptionEventArgs argsTask)
+                Logger.LogException(argsTask.Exception);
+            else if (eventArgs is DispatcherUnhandledExceptionEventArgs dispatchArgs)
+                Logger.LogException(dispatchArgs.Exception);
+            else
+                Logger.Error($"$No Exception to log! Args: {eventArgs?.GetType()?.Name}");
+            RequestShutdown(-1);
         }
 
         public virtual void RequestShutdown(int? exitCode = null)

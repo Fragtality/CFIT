@@ -105,7 +105,7 @@ try {
 	if ($cfgBuildInstaller -and $buildConfiguration -eq "Release") {
 		Write-Host "msbuild for Installer ..."
 		cd $msBuildDir
-		.\msbuild.exe (Join-Path $pathBase "Installer.csproj") /t:rebuild /p:Configuration="Release" /p:BuildProjectReferences=false -verbosity:minimal
+		.\msbuild.exe (Join-Path $pathBase "$appName.sln") /t:Installer:rebuild /p:Configuration="Release" /p:BuildProjectReferences=false -verbosity:minimal
 		if ($cfgDeploy) {
 			Write-Host "Copy version.json ..."
 			Copy-Item -Path (Join-Path $pathInstallerPayload "version.json") -Destination $pathDeploy -Force -ErrorAction SilentlyContinue | Out-Null

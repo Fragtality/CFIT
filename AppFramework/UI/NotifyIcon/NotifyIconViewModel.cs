@@ -1,4 +1,5 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CFIT.AppLogger;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using H.NotifyIcon;
 using System;
@@ -42,6 +43,7 @@ namespace CFIT.AppFramework.UI.NotifyIcon
         {
             try
             {
+                Logger.Debug("Toggle Window via SysTray");
                 if (SimApp.AppWindow.IsVisible)
                     SimApp.AppWindow.Hide(enableEfficiencyMode: false);
                 else if (!SimApp.IsAppShutDown)
@@ -59,6 +61,7 @@ namespace CFIT.AppFramework.UI.NotifyIcon
         [RelayCommand]
         public virtual void ExitApp()
         {
+            Logger.Debug("Exit Request via SysTray");
             try { SimApp.RequestShutdown(); } catch { }
         }
     }

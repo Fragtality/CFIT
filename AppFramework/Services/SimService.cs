@@ -31,10 +31,11 @@ namespace CFIT.AppFramework.Services
             Manager.WindowHook.WindowHide = (hook) => { hook.HelperWindow.Hide(enableEfficiencyMode: false); };
         }
 
-        protected override Task DoRun()
+        protected override async Task DoRun()
         {
             Controller.Run();
-            return ServiceTask;
+            while (Controller.IsRunning && !Token.IsCancellationRequested)
+                await Task.Delay(Config.CheckInterval, Token);
         }
 
         protected override void FreeResources()

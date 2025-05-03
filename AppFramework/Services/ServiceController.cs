@@ -31,6 +31,7 @@ namespace CFIT.AppFramework.Services
         public virtual uint ResetLimit { get; set; } = uint.MaxValue;
         public virtual uint ResetCounter { get; set; } = 0;
         public virtual bool IsInitialized { get; protected set; } = false;
+        public virtual bool IsRunning { get; protected set; } = false;
         public virtual bool IsTaskRunning { get { return ServiceTask?.Status <= TaskStatus.RanToCompletion; } }
         protected virtual bool ExecutionFlag { get; set; } = true;
         public virtual bool IsExecutionAllowed { get { return IsTaskRunning && !Token.IsCancellationRequested && ExecutionFlag && !isDisposed; } }
@@ -78,6 +79,7 @@ namespace CFIT.AppFramework.Services
             try
             {
                 Logger.Debug($"Service Task '{Name}' started.");
+                IsRunning = true;
                 do
                 {
                     await DoRun();
@@ -94,6 +96,7 @@ namespace CFIT.AppFramework.Services
                 if (ex is not TaskCanceledException)
                     Logger.LogException(ex);
             }
+            IsRunning = false;
             Logger.Debug($"Service Task '{Name}' ended.");
         }
 

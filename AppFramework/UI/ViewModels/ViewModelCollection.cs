@@ -49,6 +49,7 @@ namespace CFIT.AppFramework.UI.ViewModels
         public virtual int BindingCount => MemberBindings.Count;
 
         public virtual bool UpdatesAllowed { get; set; } = true;
+        public virtual bool AddAllowed { get; set; } = true;
         public virtual bool CheckContained { get; set; } = true;
         public virtual bool AllowEmpty { get; set; } = true;
 

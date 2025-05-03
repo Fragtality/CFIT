@@ -14,6 +14,8 @@ namespace CFIT.AppFramework.AppConfig
         public virtual string ProductVersionString { get { return $"{ProductVersion.ToString(3)}-{ProductTimestamp}"; } }
         public virtual string ProductAuthor { get { return "Fragtality"; } }
         public virtual string ProductGitApi { get { return $"https://api.github.com/repos/{ProductAuthor}/{ProductName}"; } }
+        public virtual bool ProductVersionCheckDev { get { return false; } }
+        public virtual string ProductDevVersionFile { get { return $"https://raw.githubusercontent.com/{ProductAuthor}/{ProductName}/refs/heads/master/Installer/Payload/version.json"; } }
         public virtual string ProductBinary { get { return ProductName; } }
         public virtual string ProductExe { get { return $"{ProductBinary}.exe"; } }
         public virtual string ProductPath { get { return $@"{Sys.FolderAppDataRoaming()}\{ProductName}"; } }
@@ -26,6 +28,7 @@ namespace CFIT.AppFramework.AppConfig
         public virtual bool MainWindowShowOnStartup { get { return true; } }
         public virtual bool MainWindowSetTitle { get { return true; } }
         public virtual bool MainWindowOverrideClose { get { return true; } }
+        public virtual bool SingleInstance { get { return false; } }
         public virtual bool WaitForSim { get { return true; } }
         public virtual bool RequireSimRunning { get { return true; } }
         public virtual int DelayShutdownCancel { get { return 500; } }

@@ -28,9 +28,9 @@ namespace CFIT.AppFramework.UI.ViewModels
         public event Action ClearInputs;
         public virtual Selector SelectorElement { get; }
         public virtual bool HasSelection => SelectorElement?.SelectedIndex >= 0;
-        protected virtual UiIconLoader IconLoader { get; } = new(Assembly.GetExecutingAssembly(), IconLoadSource.Embedded, "CFIT.AppFramework.UI.Icons.");
-        public virtual BitmapImage ImageAdd { get; }
-        public virtual BitmapImage ImageEdit { get; }
+        protected virtual UiIconLoader IconLoader { get; set; }
+        public virtual BitmapImage ImageAdd { get; protected set; }
+        public virtual BitmapImage ImageEdit { get; protected set; }
         public virtual BitmapImage ImageSource => IsUpdating ? ImageEdit : ImageAdd;
         public virtual CommandWrapper AddUpdateCommand { get; protected set; }
         public virtual CommandWrapper RemoveCommand { get; protected set; }
@@ -46,6 +46,12 @@ namespace CFIT.AppFramework.UI.ViewModels
         public virtual bool IsUpdating => ItemsSource.UpdatesAllowed && HasSelection;
 
         public ViewModelSelector(Selector selector, ViewModelCollection<Tin, Tout> source)
+               : this(selector, source, new(Assembly.GetExecutingAssembly(), IconLoadSource.Embedded, "CFIT.AppFramework.UI.Icons."))
+        {
+            
+        }
+
+        public ViewModelSelector(Selector selector, ViewModelCollection<Tin, Tout> source, UiIconLoader loader)
         {
             SelectorElement = selector;
             ItemsSource = source;
@@ -54,7 +60,12 @@ namespace CFIT.AppFramework.UI.ViewModels
             SelectorElement.SelectionChanged += SelectionChanged;
             SelectorElement.AddKeyBinding(new RelayCommand(ClearSelection), Key.Escape);
             this.PropertyChanged += SelfPropertyChanged;
+            SetIconLoader(loader);
+        }
 
+        public virtual void SetIconLoader(UiIconLoader loader)
+        {
+            IconLoader = loader;
             ImageAdd = IconLoader.LoadIcon("add");
             ImageEdit = IconLoader.LoadIcon("edit");
         }
@@ -167,7 +178,7 @@ namespace CFIT.AppFramework.UI.ViewModels
                 {
                     if (IsUpdating && ItemsSource.UpdatesAllowed)
                         ItemsSource.Update(SelectedItem, item);
-                    else if (containedCheck)
+                    else if (containedCheck && ItemsSource.AddAllowed)
                         ItemsSource.Add(item);    
                     ClearSelection();
                 }

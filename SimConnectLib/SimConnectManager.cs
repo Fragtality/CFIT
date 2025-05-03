@@ -8,6 +8,7 @@ using CFIT.SimConnectLib.SimStates;
 using CFIT.SimConnectLib.SimVars;
 using Microsoft.FlightSimulator.SimConnect;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 
@@ -22,7 +23,7 @@ namespace CFIT.SimConnectLib
         public virtual SIMCONNECT_RECV_OPEN SimConnectOpenData { get; protected set; }
         public virtual SimConnectHook WindowHook { get; }
         internal virtual IdAllocator IdAllocator { get; }
-        protected virtual List<SimConnectModule> Modules { get; } = [];
+        protected virtual ConcurrentDictionary<string, SimConnectModule> Modules { get; } = [];
         public virtual SimVarManager VariableManager { get; }
         public virtual SimEventManager EventManager { get; }
         public virtual SimStateManager StateManager { get; }
@@ -30,6 +31,7 @@ namespace CFIT.SimConnectLib
 
         public virtual bool IsSimConnected { get; protected set; } = false;
         public virtual bool IsSimConnectInitialized { get; protected set; } = false;
+        public virtual string SimVersionString => SimConnectOpenData != null ? $"{SimConnectOpenData?.szApplicationName} AppVersion {SimConnectOpenData?.dwApplicationVersionMajor}.{SimConnectOpenData?.dwApplicationVersionMinor} AppBuild {SimConnectOpenData?.dwApplicationBuildMajor}.{SimConnectOpenData?.dwApplicationBuildMinor} SimConnectVersion {SimConnectOpenData?.dwSimConnectVersionMajor}.{SimConnectOpenData?.dwSimConnectVersionMinor} SimConnectBuild {SimConnectOpenData?.dwSimConnectBuildMajor}.{SimConnectOpenData?.dwSimConnectBuildMinor}" : "";
         public virtual bool IsReceiveRunning { get; protected set; } = false;
         public virtual bool QuitReceived { get; protected set; } = false;
         protected virtual bool IsDisposed { get; set; } = false;
@@ -139,11 +141,17 @@ namespace CFIT.SimConnectLib
         {
             try
             {
+                if (Modules.ContainsKey(moduleType.Name))
+                {
+                    Logger.Warning($"SimConnectModule Type '{moduleType.Name}' is already added");
+                    return null;
+                }
+
                 var module = moduleType.CreateInstance<SimConnectModule, SimConnectManager, object>(this, moduleParams);
 
                 if (module != null)
                 {
-                    Modules.Add(module);
+                    Modules.Add(moduleType.Name, module);
                     Logger.Debug($"Added new Module of Type '{moduleType?.Name}'");
                     if (IsReceiveRunning)
                         module.OnOpen(SimConnectOpenData);
@@ -154,6 +162,25 @@ namespace CFIT.SimConnectLib
             {
                 Logger.LogException(ex);
                 return null;
+            }
+        }
+
+        public virtual void RemoveModule(Type moduleType)
+        {
+            try
+            {
+                if (Modules.TryGetValue(moduleType.Name, out SimConnectModule? module))
+                {
+                    module?.UnregisterModule(true);
+                    Modules.Remove(moduleType.Name);
+                    Logger.Debug($"Removed Module of Type '{moduleType?.Name}'");
+                }
+                else
+                    Logger.Warning($"SimConnectModule Type '{moduleType.Name}' is not registered");
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex);
             }
         }
 
@@ -379,10 +406,11 @@ namespace CFIT.SimConnectLib
             {
                 try
                 {
-                    action.Invoke(module);
+                    action.Invoke(module.Value);
                 }
                 catch (Exception ex)
                 {
+                    Logger.Debug($"Module: {module.Key}");
                     Logger.LogException(ex);
                 }
             }
@@ -448,7 +476,7 @@ namespace CFIT.SimConnectLib
                 {
                     IsReceiveRunning = true;
                     SimConnectOpenData = evtData;
-                    Logger.Information($"SimConnect OnOpen received: {evtData?.szApplicationName} AppVersion {evtData?.dwApplicationVersionMajor}.{evtData?.dwApplicationVersionMinor} AppBuild {evtData?.dwApplicationBuildMajor}.{evtData?.dwApplicationBuildMinor} SimConnectVersion {evtData?.dwSimConnectVersionMajor}.{evtData?.dwSimConnectVersionMinor} SimConnectBuild {evtData?.dwSimConnectBuildMajor}.{evtData?.dwSimConnectBuildMinor}");
+                    Logger.Information($"SimConnect OnOpen received: {SimVersionString}");
                     try { OnOpen?.Invoke(evtData); } catch (Exception ex) { Logger.LogException(ex); }
                 }
                 else

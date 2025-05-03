@@ -41,8 +41,12 @@ namespace CFIT.AppFramework.MessageService
         {
             ReceivedMessages.Enqueue(message);
             TaskTools.RunLogged(() => {
-                while (IsReceived && !IsCanceled && !Token.IsCancellationRequested)
-                    OnMessage?.Invoke(ReceivedMessages.Dequeue());
+                //while (IsReceived && !IsCanceled && !Token.IsCancellationRequested)
+                //{
+                //    var msg = ReceivedMessages.Dequeue();
+                //    OnMessage?.Invoke(msg);
+                //}
+                OnMessage?.Invoke(message);
             }, Token);
         }
 

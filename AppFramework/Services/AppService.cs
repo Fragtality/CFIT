@@ -43,6 +43,14 @@ namespace CFIT.AppFramework.Services
 
         protected override async Task DoRun()
         {
+            if (!RunCondition())
+            {
+                Logger.Information($"Sim not running - cancel Execution");
+                App.TokenSource.Cancel();
+                App.RequestShutdown();
+                return;
+            }
+
             StartServiceControllers();
             if (Definition.WaitForSim)
             {

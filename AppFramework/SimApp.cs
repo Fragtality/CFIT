@@ -49,7 +49,6 @@ namespace CFIT.AppFramework
         public virtual TService AppService { get; protected set; }
         public virtual CancellationTokenSource TokenSource { get; } = new();
         public virtual CancellationToken Token { get { return TokenSource.Token; } }
-        public abstract int BuildConfigVersion { get; }
         public virtual int ExitCode { get; set; } = 0;
         public virtual bool IsAppShutDown { get; protected set; } = false;
         public virtual Type AppWindowType { get; }
@@ -100,7 +99,7 @@ namespace CFIT.AppFramework
 
         protected virtual void InitConfiguration()
         {
-            AppConfigBase<TDefinition>.BuildConfigVersion = BuildConfigVersion;
+            AppConfigBase<TDefinition>.BuildConfigVersion = Definition.BuildConfigVersion;
             Config = AppConfigBase<TDefinition>.LoadConfiguration<TConfig>() ?? throw new NullReferenceException("AppConfig returned Null Reference!");
             Logger.Information($"Configuration loaded: v{Config.ConfigVersion} Definition: {typeof(TDefinition).Name}");
         }
@@ -242,7 +241,7 @@ namespace CFIT.AppFramework
         {
             try
             {
-                var appVersion = Definition.ProductVersion;
+                var appVersion = Version.Parse(Definition.ProductVersion.ToString(3));
 
                 HttpClient client = new()
                 {
@@ -261,20 +260,23 @@ namespace CFIT.AppFramework
 
                 if (Version.TryParse(tag_name, out Version repoVersion))
                 {
+                    Logger.Debug($"Comparing {repoVersion} to {appVersion}");
                     if (repoVersion > appVersion)
                     {
                         UpdateDetected = true;
                         UpdateVersion = repoVersion.ToString(3);
                         Logger.Information($"New Stable Version detected: {UpdateVersion}");
                     }
-                    else if (repoVersion == appVersion)
+                    else if (repoVersion <= appVersion)
                     {
                         if (Definition.ProductVersionCheckDev)
                         {
                             json = await client.GetStringAsync(Definition.ProductDevVersionFile);
                             Logger.Debug($"json received: len {json?.Length}");
                             node = JsonSerializer.Deserialize<JsonNode>(json);
-                            if (string.Compare(node["Timestamp"]!.ToString(), Definition.ProductTimestamp, StringComparison.InvariantCultureIgnoreCase) > 0)
+                            string timestamp = Definition.ProductTimestamp;
+                            Logger.Debug($"Comparing {node["Timestamp"]!} to {timestamp}");
+                            if (string.Compare(node["Timestamp"]!.ToString(), timestamp, StringComparison.InvariantCultureIgnoreCase) > 0)
                             {
                                 UpdateDetected = true;
                                 UpdateVersion = node["Timestamp"]!.ToString();

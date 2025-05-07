@@ -20,7 +20,7 @@ namespace CFIT.AppFramework.AppConfig
 
         //Config Versioning
         [JsonIgnore]
-        public static int BuildConfigVersion { get; set; } = 1;
+        public static int BuildConfigVersion { get; set; } = Definition.BuildConfigVersion;
         public int ConfigVersion { get; set; } = BuildConfigVersion;
 
         //ILoggerConfig

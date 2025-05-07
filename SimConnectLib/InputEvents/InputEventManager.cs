@@ -14,7 +14,7 @@ namespace CFIT.SimConnectLib.InputEvents
     public class InputEventManager : SimResourceManager<InputEventManager, InputEvent, InputEventSubscription>
     {
         protected virtual MappedID EnumRequestID { get; }
-        protected virtual ConcurrentDictionary<ulong, InputEvent> InputEvents { get; } = [];
+        public virtual ConcurrentDictionary<ulong, InputEvent> InputEvents { get; } = [];
         protected virtual ConcurrentDictionary<uint, ulong> RequestIds { get; } = [];
         public virtual bool HasEventsEnumerated { get; protected set; } = false;
 

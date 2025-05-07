@@ -8,6 +8,7 @@ namespace CFIT.AppFramework.AppConfig
 {
     public abstract class ProductDefinitionBase
     {
+        public abstract int BuildConfigVersion { get; }
         public abstract string ProductName { get; }
         public virtual Version ProductVersion { get { return VersionTools.GetEntryAssemblyVersion(); } }
         public virtual string ProductTimestamp { get { return VersionTools.GetEntryAssemblyTimestamp(); } }

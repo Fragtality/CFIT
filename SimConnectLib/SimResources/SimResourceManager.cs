@@ -19,7 +19,7 @@ namespace CFIT.SimConnectLib.SimResources
         where TSubscription : SimResourceSubscription<TManager, TResource, TSubscription>
     {
         protected virtual MappedIdStore IdStore { get; }
-        protected virtual ConcurrentDictionary<uint, TResource> Resources { get; } = [];
+        public virtual ConcurrentDictionary<uint, TResource> Resources { get; } = [];
         protected virtual ConcurrentDictionary<uint, bool> RegisteredDataDefinitions { get; } = [];
 
         public SimResourceManager(SimConnectManager manager, object moduleParams) : base(manager, moduleParams)

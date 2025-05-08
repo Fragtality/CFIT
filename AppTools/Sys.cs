@@ -109,7 +109,7 @@ namespace CFIT.AppTools
         {
             var pProcess = new Process();
             pProcess.StartInfo.FileName = "cmd.exe";
-            pProcess.StartInfo.Arguments = "/C" + command;
+            pProcess.StartInfo.Arguments = "/C" + $"\"{command}\"";
             pProcess.StartInfo.UseShellExecute = false;
             pProcess.StartInfo.CreateNoWindow = true;
             pProcess.StartInfo.RedirectStandardOutput = true;

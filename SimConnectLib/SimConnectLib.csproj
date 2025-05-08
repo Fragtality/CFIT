@@ -31,8 +31,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CFIT.AppLogger" Version="2025.123.22.2435" />
-    <PackageReference Include="CFIT.AppTools" Version="2025.128.16.1006" />
+    <PackageReference Include="CFIT.AppLogger" Version="2025.128.18.1406" />
+    <PackageReference Include="CFIT.AppTools" Version="2025.128.18.1415" />
     <PackageReference Include="System.Collections.Concurrent" Version="4.3.0" />
     <PackageReference Include="System.Private.Uri" Version="4.3.2" />
   </ItemGroup>

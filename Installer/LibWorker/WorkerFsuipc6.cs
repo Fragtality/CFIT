@@ -121,7 +121,7 @@ namespace CFIT.Installer.LibWorker
                 return false;
             }
 
-            Sys.RunCommand(binPath, out _);
+            Sys.RunCommand($"\"{binPath}\"", out _);
             await Task.Delay(1000, Token);
 
             try

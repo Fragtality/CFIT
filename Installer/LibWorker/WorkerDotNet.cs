@@ -64,7 +64,7 @@ namespace CFIT.Installer.LibWorker
                 else if (!Token.IsCancellationRequested)
                 {
                     Model.Message = $"Installing Runtime ({NetInstaller}) ...";
-                    string cmd = $"{filepath} /install /quiet /norestart";
+                    string cmd = $"\"{filepath}\" /install /quiet /norestart";
                     if (Sys.RunCommand(cmd, out _))
                     {
                         Model.AddMessage($"Runtime Version {NetVersion} was installed/updated successfully.", true);

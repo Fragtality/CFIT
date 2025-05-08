@@ -48,7 +48,7 @@ namespace CFIT.Installer.LibFunc
                 if (!string.IsNullOrEmpty(unblockDir))
                 {
                     Logger.Debug($"Running Unblock-File on '{unblockDir}'");
-                    Sys.RunCommand($"powershell -WindowStyle Hidden -Command \"dir -Path {unblockDir} -Recurse | Unblock-File\"", out _);
+                    Sys.RunCommand($"powershell -WindowStyle Hidden -Command \"dir -Path '{unblockDir}' -Recurse | Unblock-File\"", out _);
                 }
 
                 return true;

@@ -17,6 +17,7 @@ namespace CFIT.SimConnectLib.InputEvents
         public virtual ConcurrentDictionary<ulong, InputEvent> InputEvents { get; } = [];
         protected virtual ConcurrentDictionary<uint, ulong> RequestIds { get; } = [];
         public virtual bool HasEventsEnumerated { get; protected set; } = false;
+        public virtual bool IsEnumerating { get; protected set; } = false;
 
         public event Action<InputEventManager, bool> CallbackEventsEnumerated;
 
@@ -124,6 +125,7 @@ namespace CFIT.SimConnectLib.InputEvents
                     }
 
                     HasEventsEnumerated = true;
+                    IsEnumerating = false;
                     _ = TaskTools.RunLogged(() => { CallbackEventsEnumerated?.Invoke(this, true); }, Manager.Token);
                 }
                 else
@@ -172,6 +174,10 @@ namespace CFIT.SimConnectLib.InputEvents
 
         protected void EnumerateInputEvents()
         {
+            if (IsEnumerating)
+                return;
+            IsEnumerating = true;
+
             Logger.Debug($"Sending EnumerateInputEvents Request");
             HasEventsEnumerated = false;
             Call(sc => sc.EnumerateInputEvents(EnumRequestID));
@@ -195,6 +201,7 @@ namespace CFIT.SimConnectLib.InputEvents
             RequestIds.Clear();
             IdStore.Reset();
             HasEventsEnumerated = false;
+            IsEnumerating = false;
         }
 
         public override void CheckState()

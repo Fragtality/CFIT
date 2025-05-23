@@ -1,4 +1,5 @@
-﻿using CFIT.AppTools;
+﻿using CFIT.AppLogger;
+using CFIT.AppTools;
 using CFIT.Installer.Tasks;
 using System;
 using System.Net.Http;
@@ -29,6 +30,7 @@ namespace CFIT.Installer.LibFunc
                 }
 
                 string[] output = strOutput.Split(Environment.NewLine.ToCharArray());
+                Logger.Debug($"Received {output?.Length} Output Lines");
                 foreach (var line in output)
                 {
                     Match match;

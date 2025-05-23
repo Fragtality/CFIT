@@ -97,6 +97,7 @@ namespace CFIT.AppFramework.Services
         protected override void FreeResources()
         {
             base.FreeResources();
+            CallOnControllers((controller) => controller.Dispose());
             ReceiverStore.Remove<MsgSimStarted>();
         }
     }

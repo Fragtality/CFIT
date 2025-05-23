@@ -113,6 +113,7 @@ namespace CFIT.AppTools
             pProcess.StartInfo.UseShellExecute = false;
             pProcess.StartInfo.CreateNoWindow = true;
             pProcess.StartInfo.RedirectStandardOutput = true;
+            Logger.Debug($"Running Command: cmd.exe /C {command}");
             pProcess.Start();
             pProcess.WaitForExit();
             strOutput = pProcess?.StandardOutput?.ReadToEnd() ?? "";

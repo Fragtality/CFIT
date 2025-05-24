@@ -38,7 +38,7 @@ namespace CFIT.Installer.LibFunc
             if (!checkFile)
                 return Sys.GetProcessRunning(DeckBinaryName);
             else
-                return Sys.GetProcessRunning(DeckBinaryName) && File.Exists(ProgDataPath);
+                return Sys.GetProcessRunning(DeckBinaryName) || File.Exists(ProgDataPath);
         }
 
         public static bool IsDeckAndPluginRunning(bool checkFile = true)

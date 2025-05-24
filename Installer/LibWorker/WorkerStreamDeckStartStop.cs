@@ -111,7 +111,7 @@ namespace CFIT.Installer.LibWorker
             else
                 StreamDeck.KillSoftware();
 
-            Func<bool> func = () => { return FuncStreamDeck.IsDeckAndPluginRunning(Operation == DeckProcessOperation.STOP); };
+            Func<bool> func = () => { return FuncStreamDeck.IsDeckOrPluginRunning(Operation == DeckProcessOperation.STOP); };
             if (IgnorePluginRunning)
                 func = () => { return FuncStreamDeck.IsStreamDeckRunning(Operation == DeckProcessOperation.STOP); };
 

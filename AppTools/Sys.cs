@@ -115,9 +115,10 @@ namespace CFIT.AppTools
             pProcess.StartInfo.RedirectStandardOutput = true;
             Logger.Debug($"Running Command: cmd.exe /C {command}");
             pProcess.Start();
-            pProcess.WaitForExit();
             strOutput = pProcess?.StandardOutput?.ReadToEnd() ?? "";
+            pProcess.WaitForExit();
 
+            Logger.Debug($"Command exited with Code '{pProcess.ExitCode}'");
             return pProcess.ExitCode == exitCode;
         }
 

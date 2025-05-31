@@ -65,14 +65,15 @@ namespace CFIT.AppFramework.ResourceStores
         {
             if (SimResources.TryGetValue(name, out ISimResourceSubscription subscription))
             {
-                if (RefCount[name] <= 1)
+                subscription.Unsubscribe();
+                SimResources.Remove(name);
+                if (RefCount.ContainsKey(name))
                 {
-                    subscription.Unsubscribe();
-                    SimResources.Remove(name);
-                    RefCount.Remove(name);
+                    if (RefCount[name] <= 1)
+                        RefCount.Remove(name);
+                    else
+                        RefCount[name] = RefCount[name] - 1;
                 }
-                else
-                    RefCount[name] = RefCount[name] - 1;
             }
 
             return subscription;

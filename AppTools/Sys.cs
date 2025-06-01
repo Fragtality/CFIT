@@ -65,7 +65,7 @@ namespace CFIT.AppTools
 
         public static bool GetProcessRunning(string appName)
         {
-            return GetProcess(appName)?.ProcessName == appName;
+            return GetProcess(appName)?.ProcessName?.Equals(appName, StringComparison.InvariantCultureIgnoreCase) == true;
         }
 
         public static Process GetProcess(string appName)

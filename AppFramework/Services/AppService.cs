@@ -6,6 +6,7 @@ using CFIT.SimConnectLib;
 using System;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace CFIT.AppFramework.Services
 {
@@ -45,6 +46,7 @@ namespace CFIT.AppFramework.Services
         {
             if (!RunCondition())
             {
+                MessageBox.Show($"No Simulator running - {Definition.ProductName} will exit now", "Sim not running", MessageBoxButton.OK, MessageBoxImage.Error);
                 Logger.Information($"Sim not running - cancel Execution");
                 App.TokenSource.Cancel();
                 App.RequestShutdown();

@@ -12,6 +12,13 @@
         XP12 = 12,
     }
 
+    public enum SimulatorStore
+    {
+        All = 0,
+        Steam = 1,
+        MsStore = 2,
+    }
+
     public static class SimCommon
     {
 

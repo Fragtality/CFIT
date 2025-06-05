@@ -20,20 +20,20 @@ namespace CFIT.Installer.LibFunc
         public static string MsfsBinary2020 { get; } = "FlightSimulator";
         public static string MsfsBinary2024 { get; } = "FlightSimulator2024";
 
-        public static Dictionary<Simulator, string[]> MsfsConfigPaths { get; } = new Dictionary<Simulator, string[]>()
+        public static Dictionary<Simulator, Dictionary<SimulatorStore, string>> MsfsConfigPaths { get; } = new Dictionary<Simulator, Dictionary<SimulatorStore, string>>()
         {
             {
                 Simulator.MSFS2020,
-                new string[] {
-                    $@"{Sys.FolderAppDataLocal()}\Packages\Microsoft.FlightSimulator_8wekyb3d8bbwe\LocalCache\{MsfsConfigFile}",
-                    $@"{Sys.FolderAppDataRoaming()}\Microsoft Flight Simulator\{MsfsConfigFile}"
+                new Dictionary<SimulatorStore, string> {
+                    { SimulatorStore.MsStore, $@"{Sys.FolderAppDataLocal()}\Packages\Microsoft.FlightSimulator_8wekyb3d8bbwe\LocalCache\{MsfsConfigFile}" },
+                    { SimulatorStore.Steam, $@"{Sys.FolderAppDataRoaming()}\Microsoft Flight Simulator\{MsfsConfigFile}" },
                 }
             },
             {
                 Simulator.MSFS2024,
-                new string[] {
-                    $@"{Sys.FolderAppDataLocal()}\Packages\Microsoft.Limitless_8wekyb3d8bbwe\LocalCache\{MsfsConfigFile}",
-                    $@"{Sys.FolderAppDataRoaming()}\Microsoft Flight Simulator 2024\{MsfsConfigFile}",
+                new Dictionary<SimulatorStore, string> {
+                    { SimulatorStore.MsStore, $@"{Sys.FolderAppDataLocal()}\Packages\Microsoft.Limitless_8wekyb3d8bbwe\LocalCache\{MsfsConfigFile}" },
+                    { SimulatorStore.Steam, $@"{Sys.FolderAppDataRoaming()}\Microsoft Flight Simulator 2024\{MsfsConfigFile}" },
                 }
             },
         };
@@ -61,14 +61,34 @@ namespace CFIT.Installer.LibFunc
             return Sys.GetProcessRunning(MsfsBinary2020) || Sys.GetProcessRunning(MsfsBinary2024);
         }
 
-        public static bool CheckInstalledMsfs(Simulator simulator, out string[] packagePaths)
+        public static bool IsPathSteam(string packagePath)
+        {
+            return packagePath?.StartsWith(Sys.FolderAppDataRoaming(), StringComparison.InvariantCultureIgnoreCase) == true;
+        }
+
+        public static bool IsPathMsStore(string packagePath)
+        {
+            return packagePath?.StartsWith(Sys.FolderAppDataLocal(), StringComparison.InvariantCultureIgnoreCase) == true;
+        }
+
+        public static bool CheckInstalledMsfs(Simulator simulator, SimulatorStore simStore, out Dictionary<SimulatorStore, string> packagePaths)
         {
             bool result = false;
-            List<string> paths = new List<string>();
+            var paths = new Dictionary<SimulatorStore, string>();
             try
             {
-                foreach (var cfgPath in MsfsConfigPaths[simulator])
+                var stores = new List<SimulatorStore>();
+                if (simStore == SimulatorStore.All)
                 {
+                    stores.Add(SimulatorStore.Steam);
+                    stores.Add(SimulatorStore.MsStore);
+                }
+                else
+                    stores.Add(simStore);
+
+                foreach (var store in stores)
+                {
+                    string cfgPath = MsfsConfigPaths[simulator][store];
                     if (File.Exists(cfgPath))
                     {
                         Logger.Debug($"cfgPath exists: {cfgPath}");
@@ -77,8 +97,9 @@ namespace CFIT.Installer.LibFunc
                         if (!string.IsNullOrWhiteSpace(packagePath) && Directory.Exists(packagePath))
                         {
                             Logger.Debug($"Path exists!");
-                            paths.Add(packagePath);
+                            paths.Add(store, packagePath);
                             result = true;
+                            Logger.Debug($"Path added for Sim {simulator} and Store {store}!");
                         }
                         else
                             Logger.Debug($"Path does not exist!");
@@ -92,18 +113,31 @@ namespace CFIT.Installer.LibFunc
                 TaskStore.CurrentTask.SetError(ex);
             }
 
-            packagePaths = paths.ToArray();
+            packagePaths = paths;
             return result;
         }
 
-        public static bool CheckInstalledMsfs(Simulator simulator)
+        public static bool CheckInstalledMsfs(Simulator simulator, SimulatorStore simStore = SimulatorStore.All)
         {
             bool result = false;
 
-            foreach (var cfgPath in MsfsConfigPaths[simulator])
+            var stores = new List<SimulatorStore>();
+            if (simStore == SimulatorStore.All)
             {
+                stores.Add(SimulatorStore.Steam);
+                stores.Add(SimulatorStore.MsStore);
+            }
+            else
+                stores.Add(simStore);
+
+            foreach (var store in stores)
+            {
+                string cfgPath = MsfsConfigPaths[simulator][store];
                 if (File.Exists(cfgPath) || Directory.Exists(Path.GetDirectoryName(cfgPath)))
+                {
                     result = true;
+                    Logger.Debug($"Path found for Sim {simulator} and Store {store}!");
+                }
             }
 
             return result;

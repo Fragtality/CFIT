@@ -49,10 +49,10 @@ namespace CFIT.Installer.LibWorker
             if (SearchSimulators?.Contains(sim) == true)
             {
                 Model.Message = $"Searching Package Path for {sim} ...";
-                if (FuncMsfs.CheckInstalledMsfs(sim, out string[] paths))
+                if (FuncMsfs.CheckInstalledMsfs(sim, SimulatorStore.All, out Dictionary<SimulatorStore, string> paths))
                 {
-                    dict.Add(sim, paths);
-                    Logger.Debug($"Added {paths?.Length} Paths for Simulator {sim}");
+                    dict.Add(sim, paths.Values.ToArray());
+                    Logger.Debug($"Added {paths?.Values?.Count} Paths for Simulator {sim}");
                 }
             }
         }

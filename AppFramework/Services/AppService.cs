@@ -39,7 +39,7 @@ namespace CFIT.AppFramework.Services
 
         protected virtual bool RunCondition()
         {
-            return !Definition.RequireSimRunning || Definition.RequireSimRunning && SimService.Controller.IsSimRunning && !SimConnect.QuitReceived;
+            return !Definition.RequireSimRunning && !SimConnect.QuitReceived || Definition.RequireSimRunning && SimService.Controller.IsSimRunning && !SimConnect.QuitReceived;
         }
 
         protected override async Task DoRun()

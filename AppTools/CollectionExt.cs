@@ -1,5 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace CFIT.AppTools
 {
@@ -43,6 +45,14 @@ namespace CFIT.AppTools
         public static bool Remove<T>(this ConcurrentDictionary<T, bool> dictionary, T value)
         {
             return dictionary.TryRemove(value, out _);
+        }
+
+        public static void AddOrUpdate<K,V>(this Dictionary<K, V> dictionary, K key, V value)
+        {
+            if (dictionary.ContainsKey(key))
+                dictionary[key] = value;
+            else
+                dictionary.Add(key, value);
         }
     }
 }

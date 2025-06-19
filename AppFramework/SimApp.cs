@@ -304,7 +304,7 @@ namespace CFIT.AppFramework
             Logger.Error("---- APP CRASH ----");
             LogAppCrashException(args);
             ExitCode = -1;
-            ExecuteShutdown();
+            _ = ExecuteShutdown();
             Logger.CloseAndFlush();
         }
 
@@ -331,13 +331,13 @@ namespace CFIT.AppFramework
                 ExitCode = (int)exitCode;
 
             Logger.Information($"Shutdown Request received!");
-            ExecuteShutdown();
+            _ = ExecuteShutdown();
         }
 
-        protected virtual async void ExecuteShutdown()
+        protected virtual async Task ExecuteShutdown()
         {
             Logger.Debug($"Cancel Operations.");
-            CancelOperations();
+            await CancelOperations();
             await Task.Delay(Definition.DelayShutdownCancel);
 
             Logger.Debug($"Free Resources.");
@@ -349,11 +349,12 @@ namespace CFIT.AppFramework
             catch { Environment.Exit(ExitCode); }
         }
 
-        protected virtual void CancelOperations()
+        protected virtual async Task CancelOperations()
         {
             if (TokenSource.IsCancellationRequested)
                 return;
 
+            await AppService.Stop();
             TokenSource.Cancel();
         }
 

@@ -5,6 +5,7 @@ using CFIT.SimConnectLib.SimResources;
 using Microsoft.FlightSimulator.SimConnect;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace CFIT.SimConnectLib.SimStates
 {
@@ -89,32 +90,32 @@ namespace CFIT.SimConnectLib.SimStates
             return new SimStateSubscription(state, pollInterval, pollOnly);
         }
 
-        public override void CheckState()
+        public override Task CheckState()
         {
-
+            return Task.CompletedTask;
         }
 
-        public override int CheckResources()
+        public override async Task<int> CheckResources()
         {
-            int count = base.CheckResources();
+            int count = await base.CheckResources();
 
             if (count == 0)
             {
                 var query = Resources.Where(kv => kv.Value.IsRegistered && !kv.Value.IsReceived && kv.Value.UpdateType != SimStateUpdate.SUBSCRIBE);
                 foreach (var kv in query)
-                    kv.Value.Request();
+                    await kv.Value.Request();
                 count += query.Count();
             }
 
             return count;
         }
 
-        protected override void Unregister(bool disconnect)
+        protected override Task Unregister(bool disconnect)
         {
-            
+            return Task.CompletedTask;
         }
 
-        public override void ClearUnusedResources(bool clearAll)
+        public override async Task ClearUnusedResources(bool clearAll)
         {
             if (!clearAll)
             {
@@ -123,7 +124,7 @@ namespace CFIT.SimConnectLib.SimStates
                 {
                     Logger.Debug($"Unregister unused SimStates: {unused.Count()}");
                     foreach (var simres in unused)
-                        simres.Value.Unregister(false);
+                        await simres.Value.Unregister(false);
                 }
             }
             else
@@ -131,7 +132,7 @@ namespace CFIT.SimConnectLib.SimStates
                 var noninternal = Resources.Where(kv => !kv.Value.IsInternal).Select(kv => kv.Key).ToList();
                 Logger.Debug($"Removing all non-internal SimStates: {noninternal.Count}");
                 foreach (var key in noninternal)
-                    Resources[key].Unregister(true);
+                    await Resources[key].Unregister(true);
                 foreach (var key in noninternal)
                     Resources.Remove(key);
 

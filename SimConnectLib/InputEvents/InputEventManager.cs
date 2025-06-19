@@ -8,6 +8,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace CFIT.SimConnectLib.InputEvents
 {
@@ -18,6 +19,8 @@ namespace CFIT.SimConnectLib.InputEvents
         protected virtual ConcurrentDictionary<uint, ulong> RequestIds { get; } = [];
         public virtual bool HasEventsEnumerated { get; protected set; } = false;
         public virtual bool IsEnumerating { get; protected set; } = false;
+        public virtual bool FirstEnumeration { get; protected set; } = true;
+        public virtual int EnumerationAttempts { get; protected set; } = 0;
 
         public event Action<InputEventManager, bool> CallbackEventsEnumerated;
 
@@ -42,13 +45,15 @@ namespace CFIT.SimConnectLib.InputEvents
         public override void RegisterModule()
         {
             Manager.OnOpen += OnOpen;
+            Manager.OnException += OnSimConnectException;
         }
 
-        public override void OnOpen(SIMCONNECT_RECV_OPEN evtData)
+        public override Task OnOpen(SIMCONNECT_RECV_OPEN evtData)
         {
             Manager.GetSimConnect().OnRecvEnumerateInputEvents += RecvEnumerateInputEventsEventHandler;
             Manager.GetSimConnect().OnRecvGetInputEvent += RecvGetInputEventEventHandler;
             Manager.GetSimConnect().OnRecvSubscribeInputEvent += RecvSubscribeInputEventEventHandler;
+            return Task.CompletedTask;
         }
 
         public virtual bool IsNameEnumerated(string name, out ulong hash)
@@ -172,7 +177,23 @@ namespace CFIT.SimConnectLib.InputEvents
             }
         }
 
-        protected void EnumerateInputEvents()
+        protected virtual void OnSimConnectException(SIMCONNECT_RECV_EXCEPTION obj)
+        {
+            if (obj?.dwException == 1 && obj?.dwID == 1 && obj?.dwIndex == 4294967295)
+            {
+                IsEnumerating = false;
+                EnumerationAttempts++;
+                if (EnumerationAttempts < Manager.Config.InputEventsMaxAttempts)
+                    Logger.Warning($"Error while enumerating InputEvents");
+                else
+                {
+                    Logger.Error($"Maxmimum Attempts to enumerate InputEvents - cancel Enumeration");
+                    HasEventsEnumerated = true;
+                }
+            }
+        }
+
+        protected async Task EnumerateInputEvents()
         {
             if (IsEnumerating)
                 return;
@@ -180,16 +201,20 @@ namespace CFIT.SimConnectLib.InputEvents
 
             Logger.Debug($"Sending EnumerateInputEvents Request");
             HasEventsEnumerated = false;
-            Call(sc => sc.EnumerateInputEvents(EnumRequestID));
+            if (FirstEnumeration || EnumerationAttempts > 0)
+                await Task.Delay(Manager.Config.InputEventScanDelay, Manager.Token);
+
+            _ = Call(sc => sc.EnumerateInputEvents(EnumRequestID));
+            FirstEnumeration = false;
         }
 
-        protected void ClearInputEvents()
+        protected virtual async Task ClearInputEvents()
         {
             Logger.Debug($"Clearing InputEvents");
             try
             {
                 foreach (var inputEvent in InputEvents.Values)
-                    inputEvent.Unregister(false);
+                    await inputEvent.Unregister(false);
             }
             catch (Exception ex)
             {
@@ -201,23 +226,25 @@ namespace CFIT.SimConnectLib.InputEvents
             RequestIds.Clear();
             IdStore.Reset();
             HasEventsEnumerated = false;
+            EnumerationAttempts = 0;
             IsEnumerating = false;
+            FirstEnumeration = true;
         }
 
-        public override void CheckState()
+        public override async Task CheckState()
         {
             if (!HasEventsEnumerated && Manager.IsSessionStarted)
             {
-                EnumerateInputEvents();
+                await EnumerateInputEvents();
             }
             else if (HasEventsEnumerated && Manager.IsSessionStopped)
             {
-                ClearInputEvents();
-                _ = TaskTools.RunLogged(() => { CallbackEventsEnumerated?.Invoke(this, false); }, Manager.Token);
+                await ClearInputEvents();
+                await TaskTools.RunLogged(() => { CallbackEventsEnumerated?.Invoke(this, false); }, Manager.Token);
             }
         }
 
-        public override int CheckResources()
+        public override async Task<int> CheckResources()
         {
             int count = 0;
             if (HasEventsEnumerated && Manager.IsSessionRunning)
@@ -225,13 +252,13 @@ namespace CFIT.SimConnectLib.InputEvents
                 var query = InputEvents.Where(kv => !kv.Value.IsRegistered && kv.Value.IsSubscribed);
                 count = query.Count();
                 foreach (var kv in query)
-                    kv.Value.Register();
+                    await kv.Value.Register();
 
                 if (count == 0)
                 {
                     query = InputEvents.Where(kv => kv.Value.IsRegistered && !kv.Value.IsReceived);
                     foreach (var kv in query)
-                        kv.Value.Request();
+                        await kv.Value.Request();
                     count += query.Count();
                 }
             }
@@ -239,7 +266,7 @@ namespace CFIT.SimConnectLib.InputEvents
             return count;
         }
 
-        protected override void Unregister(bool disconnect)
+        protected override Task Unregister(bool disconnect)
         {
             if (disconnect && Manager.IsReceiveRunning)
             {
@@ -247,9 +274,11 @@ namespace CFIT.SimConnectLib.InputEvents
                 Manager.GetSimConnect().OnRecvGetInputEvent -= RecvGetInputEventEventHandler;
                 Manager.GetSimConnect().OnRecvSubscribeInputEvent -= RecvSubscribeInputEventEventHandler;
             }
+
+            return Task.CompletedTask;
         }
 
-        public override void ClearUnusedResources(bool clearAll)
+        public override async Task ClearUnusedResources(bool clearAll)
         {
             if (!clearAll)
             {
@@ -258,16 +287,14 @@ namespace CFIT.SimConnectLib.InputEvents
                 {
                     Logger.Debug($"Unregister unused InputEvents: {unused.Count()}");
                     foreach (var simres in unused)
-                        simres.Value.Unregister(false);
+                        await simres.Value.Unregister(false);
                 }
             }
             else
-            {
-                ClearInputEvents();
-            }
+                await ClearInputEvents();
         }
 
-        public virtual bool SendEvent(string name, double value)
+        public virtual async Task<bool> SendEvent(string name, double value)
         {
             if (!IsNameEnumerated(name, out ulong hash))
             {
@@ -275,7 +302,7 @@ namespace CFIT.SimConnectLib.InputEvents
                 return false;
             }
 
-            return Call(sc => sc.SetInputEvent(hash, value));
+            return await Call(sc => sc.SetInputEvent(hash, value));
         }
     }
 }

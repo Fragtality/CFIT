@@ -133,9 +133,14 @@ namespace CFIT.AppTools
         {
             if (!int.TryParse(valString, NumberStyles.Number, new RealInvariantFormat(valString), out numValue))
             {
-                bool result = bool.TryParse(valString, out bool boolValue);
-                numValue = boolValue ? 1 : 0;
-                return result;
+                if (valString?.StartsWith("0x") == true && int.TryParse(valString.Substring(2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out numValue))
+                    return true;
+                else
+                {
+                    bool result = bool.TryParse(valString, out bool boolValue);
+                    numValue = boolValue ? 1 : 0;
+                    return result;
+                }
             }
             else
                 return true;

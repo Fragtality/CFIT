@@ -8,4 +8,11 @@
         PAUSE_ACTIVE = 4,
         PAUSE_SIM = 8
     };
+
+    public enum SimVersion
+    {
+        UNKNOWNN = 0,
+        MSFS2020 = 1,
+        MSFS2024 = 2,
+    };
 }

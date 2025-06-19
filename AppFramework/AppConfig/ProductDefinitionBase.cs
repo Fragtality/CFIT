@@ -32,8 +32,8 @@ namespace CFIT.AppFramework.AppConfig
         public virtual bool SingleInstance { get { return false; } }
         public virtual bool WaitForSim { get { return true; } }
         public virtual bool RequireSimRunning { get { return true; } }
-        public virtual int DelayShutdownCancel { get { return 500; } }
-        public virtual int DelayShutdownResources { get { return 250; } }
+        public virtual int DelayShutdownCancel { get { return 1500; } }
+        public virtual int DelayShutdownResources { get { return 750; } }
         public const int MessageCheckIntervalMs = 100;
 
         public virtual Dictionary<string, object> DefinitionStore { get; } = [];

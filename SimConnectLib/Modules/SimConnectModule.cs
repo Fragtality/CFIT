@@ -1,5 +1,6 @@
 ﻿using Microsoft.FlightSimulator.SimConnect;
 using System;
+using System.Threading.Tasks;
 
 namespace CFIT.SimConnectLib.Modules
 {
@@ -17,20 +18,20 @@ namespace CFIT.SimConnectLib.Modules
 
         protected abstract void SetModuleParams(object moduleParams);
 
-        public virtual bool Call(Action<SimConnect> action)
+        public virtual async Task<bool> Call(Action<SimConnect> action)
         {
-            return Manager?.Call(action) ?? false;
+            return await Manager?.Call(action);
         }
 
-        public virtual void OnOpen(SIMCONNECT_RECV_OPEN evtData)
+        public virtual Task OnOpen(SIMCONNECT_RECV_OPEN evtData)
         {
-
+            return Task.CompletedTask;
         }
 
         public abstract void RegisterModule();
-        public abstract void UnregisterModule(bool disconnect);
-        public abstract void CheckState();
-        public abstract int CheckResources();
-        public abstract void ClearUnusedResources(bool clearAll);
+        public abstract Task UnregisterModule(bool disconnect);
+        public abstract Task CheckState();
+        public abstract Task<int> CheckResources();
+        public abstract Task ClearUnusedResources(bool clearAll);
     }
 }

@@ -19,8 +19,8 @@ namespace CFIT.SimConnectLib.SimResources
         public T GetValue<T>();
         public double GetNumber();
         public string GetString();
-        public bool WriteValue(object value);
-        public bool WriteValues(object[] values);
+        public Task<bool> WriteValue(object value);
+        public Task<bool> WriteValues(object[] values);
         public string ToString();
     }
 
@@ -156,14 +156,14 @@ namespace CFIT.SimConnectLib.SimResources
             Manager.Unsubscribe(this as TSubscription);
         }
 
-        public virtual bool WriteValue(object value)
+        public virtual async Task<bool> WriteValue(object value)
         {
-            return Resource.WriteValue(value);
+            return await Resource.WriteValue(value);
         }
 
-        public virtual bool WriteValues(object[] values)
+        public virtual async Task<bool> WriteValues(object[] values)
         {
-            return Resource.WriteValues(values);
+            return await Resource.WriteValues(values);
         }
 
         public override string ToString()

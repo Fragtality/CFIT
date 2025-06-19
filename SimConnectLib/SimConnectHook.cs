@@ -8,10 +8,10 @@ using System.Windows.Interop;
 
 namespace CFIT.SimConnectLib
 {
-    public class SimConnectHook(SimConnectManager manager, int msgSimConnect, int msgConnectRequest)
+    public partial class SimConnectHook(SimConnectManager manager, int msgSimConnect, int msgConnectRequest)
     {
-        [DllImport("user32.dll", CharSet = CharSet.Auto)]
-        private static extern IntPtr DefWindowProc(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+        [LibraryImport("user32.dll", EntryPoint = "DefWindowProcW", StringMarshalling = StringMarshalling.Utf16)]
+        private static partial IntPtr DefWindowProc(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
 
 
         protected virtual SimConnectManager Manager { get; } = manager;
@@ -95,7 +95,7 @@ namespace CFIT.SimConnectLib
                 try
                 {
                     Logger.Verbose($"Received MsgSimConnect ({MsgSimConnect})");
-                    Manager.ReceiveMessage();
+                    _ = Manager.ReceiveMessage();
                 }
                 catch (Exception ex)
                 {

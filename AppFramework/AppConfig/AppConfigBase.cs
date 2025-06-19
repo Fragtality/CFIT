@@ -41,6 +41,8 @@ namespace CFIT.AppFramework.AppConfig
         public virtual int RetryDelay { get; set; } = 30 * 1000;
         public virtual int StaleTimeout { get; set; } = 3 * 1000;
         public virtual int CheckInterval { get; set; } = 500;
+        public virtual int InputEventsMaxAttempts { get; set; } = 3;
+        public virtual int InputEventScanDelay { get; set; } = 2500;
         [JsonIgnore]
         public virtual bool CreateWindow { get { return true; } }
         [JsonIgnore]

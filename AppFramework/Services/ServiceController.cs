@@ -59,17 +59,18 @@ namespace CFIT.AppFramework.Services
                 UpdateTimer?.Stop();
         }
 
-        protected virtual void Init()
+        protected virtual Task Init()
         {
             if (!IsInitialized)
                 InitReceivers();
 
             IsInitialized = true;
+            return Task.CompletedTask;
         }
 
-        protected virtual void InitReceivers()
+        protected virtual Task InitReceivers()
         {
-
+            return Task.CompletedTask;
         }
 
         protected abstract Task DoRun();
@@ -84,11 +85,11 @@ namespace CFIT.AppFramework.Services
                 {
                     await DoRun();
                 }
-                while (Reset());
+                while (await Reset());
 
                 if (Token.IsCancellationRequested)
                 {
-                    FreeResources();
+                    await FreeResources();
                 }
             }
             catch (Exception ex)
@@ -100,12 +101,12 @@ namespace CFIT.AppFramework.Services
             Logger.Debug($"Service Task '{Name}' ended.");
         }
 
-        protected virtual void ResetState()
+        protected virtual Task ResetState()
         {
-
+            return Task.CompletedTask;
         }
 
-        protected virtual bool Reset()
+        protected virtual Task<bool> Reset()
         {
             ResetState();
             ExecutionFlag = IsResettable;
@@ -113,12 +114,12 @@ namespace CFIT.AppFramework.Services
             bool result = IsResettable && ResetCounter < ResetLimit && !Token.IsCancellationRequested;
             if (result)
                 Logger.Debug($"Service Task '{Name}' resetted.");
-            return result;
+            return Task.FromResult(result);
         }
 
-        protected virtual void FreeResources()
+        protected virtual Task FreeResources()
         {
-            
+            return Task.CompletedTask;
         }
 
         public virtual void Start()
@@ -143,10 +144,11 @@ namespace CFIT.AppFramework.Services
             }
         }
 
-        public virtual void Stop()
+        public virtual Task Stop()
         {
             Logger.Debug($"Stop requested for '{Name}'");
             ExecutionFlag = false;
+            return Task.CompletedTask;
         }
 
         protected virtual void Dispose(bool disposing)

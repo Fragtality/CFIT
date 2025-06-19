@@ -5,6 +5,7 @@ using CFIT.SimConnectLib.Modules;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace CFIT.SimConnectLib.SimResources
 {
@@ -84,26 +85,26 @@ namespace CFIT.SimConnectLib.SimResources
             resource.Unsubscribe(subscription);
         }
 
-        public override int CheckResources()
+        public override async Task<int> CheckResources()
         {
             var querySub = Resources.Where(kv => !kv.Value.IsRegistered && kv.Value.IsSubscribed);
             if (querySub.Any())
                 Logger.Debug($"Subscribing {querySub.Count()} Resources");
             foreach (var kv in querySub)
-                kv.Value.Register();
+                await kv.Value.Register();
 
             return querySub.Count();
         }
 
-        public override void UnregisterModule(bool disconnect)
+        public override async Task UnregisterModule(bool disconnect)
         {
             foreach (var resource in Resources)
-                resource.Value.Unregister(disconnect);
+                await resource.Value.Unregister(disconnect);
 
-            Unregister(disconnect);
+            await Unregister(disconnect);
         }
 
-        protected abstract void Unregister(bool disconnect);
+        protected abstract Task Unregister(bool disconnect);
 
         public virtual bool AddDataDefinition(MappedID id)
         {

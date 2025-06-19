@@ -3,6 +3,8 @@ using CFIT.AppTools;
 using CFIT.SimConnectLib.Definitions;
 using Microsoft.FlightSimulator.SimConnect;
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace CFIT.SimConnectLib.SimResources
 {
@@ -22,19 +24,19 @@ namespace CFIT.SimConnectLib.SimResources
         public bool IsSubscribed { get; }
         public bool IsRegistered { get; }
         public bool IsReceived { get;}
-        public void Register();
+        public Task Register();
 
-        public void Request();
+        public Task Request();
 
-        public void Unregister(bool disconnect);
+        public Task Unregister(bool disconnect);
         public string ToString();
         public T GetValue<T>();
         public double GetNumber();
         public string GetString();
         public void SetValue(object value);
         public void SetValues(object[] values);
-        public bool WriteValue(object value);
-        public bool WriteValues(object[] values);
+        public Task<bool> WriteValue(object value);
+        public Task<bool> WriteValues(object[] values);
     }
 
     public abstract class SimResource<TManager, TResource, TSubscription>(string name, MappedID id, TManager manager, bool isInternal) : ISimResource
@@ -47,7 +49,7 @@ namespace CFIT.SimConnectLib.SimResources
         public virtual string Name { get; } = name;
         public virtual bool IsInternal { get; } = isInternal;
         public virtual object ValueStore { get; protected set; }
-        protected object _lock = new();
+        protected SemaphoreSlim _lock = new(1, 1);
         public abstract bool IsNumeric { get; }
         public abstract bool IsString { get; }
         public abstract bool IsStruct { get; }
@@ -58,15 +60,15 @@ namespace CFIT.SimConnectLib.SimResources
         public virtual bool IsRegistered { get; protected set; } = false;
         public virtual bool IsReceived { get; protected set; } = false;
 
-        public abstract void Register();
+        public abstract Task Register();
 
-        public abstract void Request();
+        public abstract Task Request();
 
-        public abstract void Unregister(bool disconnect);
+        public abstract Task Unregister(bool disconnect);
 
-        protected virtual bool Call(Action<SimConnect> action)
+        protected virtual async Task<bool> Call(Action<SimConnect> action)
         {
-            return Manager?.Call(action) ?? false;
+            return await Manager?.Call(action);
         }
 
         public virtual T GetValue<T>()
@@ -205,12 +207,12 @@ namespace CFIT.SimConnectLib.SimResources
                 Logger.Warning($"Received Array was null or empty");
         }
 
-        public abstract bool WriteValue(object value);
+        public abstract Task<bool> WriteValue(object value);
 
-        public virtual bool WriteValues(object[] values)
+        public virtual async Task<bool> WriteValues(object[] values)
         {
             if (values?.Length >= 1)
-                return WriteValue(values[0]);
+                return await WriteValue(values[0]);
             else
                 Logger.Warning($"Received Array was null or empty");
             return false;

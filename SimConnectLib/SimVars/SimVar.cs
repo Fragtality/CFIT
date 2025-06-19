@@ -3,6 +3,7 @@ using CFIT.SimConnectLib.Definitions;
 using CFIT.SimConnectLib.SimResources;
 using Microsoft.FlightSimulator.SimConnect;
 using System;
+using System.Threading.Tasks;
 
 
 namespace CFIT.SimConnectLib.SimVars
@@ -19,30 +20,30 @@ namespace CFIT.SimConnectLib.SimVars
 
         }
 
-        public override void Register()
+        public override async Task Register()
         {
-            Call(sc => sc.AddToDataDefinition(Id, Name, Type.GetDefinitionName(), Type.DataType, 0, 0));
-            Type.RegisterDefineStruct(Id, Manager.Manager);
+            await Call(sc => sc.AddToDataDefinition(Id, Name, Type.GetDefinitionName(), Type.DataType, 0, 0));
+            await Type.RegisterDefineStruct(Id, Manager.Manager);
             Manager.AddDataDefinition(Id);
 
-            Call(sc => sc.RequestDataOnSimObject(Id, Id, SimConnect.SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_PERIOD.SIM_FRAME, SIMCONNECT_DATA_REQUEST_FLAG.CHANGED, 0, 0, 0));
+            await Call(sc => sc.RequestDataOnSimObject(Id, Id, SimConnect.SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_PERIOD.SIM_FRAME, SIMCONNECT_DATA_REQUEST_FLAG.CHANGED, 0, 0, 0));
 
             IsRegistered = true;
             if (Manager.Manager.Config.VerboseLogging)
                 Logger.Verbose($"Variable '{Name}' ({Type}) registered on SimConnect with ID '{Id}'");
         }
 
-        public override void Request()
+        public override Task Request()
         {
-
+            return Task.CompletedTask;
         }
 
-        public override void Unregister(bool disconnect)
+        public override async Task Unregister(bool disconnect)
         {
             if (Manager.IsReceiveRunning && IsRegistered)
             {
-                Call(sc => sc.RequestDataOnSimObject(Id, Id, SimConnect.SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_PERIOD.NEVER, SIMCONNECT_DATA_REQUEST_FLAG.CHANGED, 0, 0, 0));
-                Call(sc => sc.ClearDataDefinition(Id));
+                await Call(sc => sc?.RequestDataOnSimObject(Id, Id, SimConnect.SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_PERIOD.NEVER, SIMCONNECT_DATA_REQUEST_FLAG.CHANGED, 0, 0, 0));
+                await Call(sc => sc?.ClearDataDefinition(Id));
                 Manager.ClearDataDefinition(Id);
             }
 
@@ -97,43 +98,46 @@ namespace CFIT.SimConnectLib.SimVars
                 base.SetValue(value);
         }
 
-        public override bool WriteValue(object value)
+        public override async Task<bool> WriteValue(object value)
         {
-            lock (_lock)
+            try
             {
-                try
+                if (value == null)
                 {
-                    if (value == null)
-                    {
-                        Logger.Warning($"Passed value is null");
-                        return false;
-                    }
-
-                    ValueStore = value;
-                    if (IsString && value is string strValue)
-                        value = new StructString() { str = strValue };
-                    else if (IsNumeric)
-                    {
-                        if (Type.CastType == SimCastType.DOUBLE)
-                            value = Convert.ChangeType(value, typeof(double));
-                        else if (Type.CastType == SimCastType.BOOL)
-                            value = Convert.ChangeType(value, typeof(bool));
-                        else if (Type.CastType == SimCastType.INT)
-                            value = Convert.ChangeType(value, typeof(int));
-                        else if (Type.CastType == SimCastType.LONG)
-                            value = Convert.ChangeType(value, typeof(long));
-                        else if (Type.CastType == SimCastType.FLOAT)
-                            value = Convert.ChangeType(value, typeof(float));
-                    }
-                    Logger.Verbose($"Writing to Variable '{Name}' - Value: {value}");
-                    Call(sc => sc.SetDataOnSimObject(Id, SimConnect.SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_DATA_SET_FLAG.DEFAULT, value));
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogException(ex);
+                    Logger.Warning($"Passed value is null");
                     return false;
                 }
+
+                ValueStore = value;
+                if (IsString && value is string strValue)
+                    value = new StructString() { str = strValue };
+                else if (IsNumeric)
+                {
+                    if (Type.CastType == SimCastType.DOUBLE)
+                        value = Convert.ChangeType(value, typeof(double));
+                    else if (Type.CastType == SimCastType.BOOL)
+                        value = Convert.ChangeType(value, typeof(bool));
+                    else if (Type.CastType == SimCastType.INT)
+                        value = Convert.ChangeType(value, typeof(int));
+                    else if (Type.CastType == SimCastType.LONG)
+                        value = Convert.ChangeType(value, typeof(long));
+                    else if (Type.CastType == SimCastType.FLOAT)
+                        value = Convert.ChangeType(value, typeof(float));
+                }
+                Logger.Verbose($"Writing to Variable '{Name}' - Value: {value}");
+                await _lock.WaitAsync();
+                await Call(sc => sc.SetDataOnSimObject(Id, SimConnect.SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_DATA_SET_FLAG.DEFAULT, value));
             }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex);
+                return false;
+            }
+            finally
+            {
+                try { _lock.Release(); } catch { }
+            }
+
             return true;
         }
 

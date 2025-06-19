@@ -11,12 +11,16 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace CFIT.SimConnectLib
 {
     public partial class SimConnectManager : IDisposable
     {
-        public static Mutex SimConnectMutex { get; } = new();
+        public const string AppName2020 = "KittyHawk";
+        public const string AppName2024 = "SunRise";
+
+        public virtual SemaphoreSlim SimConnectSemaphore { get; } = new(1, 1);
         public CancellationToken Token { get; }
         public virtual ISimConnectConfig Config { get; }
         protected virtual SimConnect SimConnectInstance { get; set; }
@@ -32,6 +36,7 @@ namespace CFIT.SimConnectLib
         public virtual bool IsSimConnected { get; protected set; } = false;
         public virtual bool IsSimConnectInitialized { get; protected set; } = false;
         public virtual string SimVersionString => SimConnectOpenData != null ? $"{SimConnectOpenData?.szApplicationName} AppVersion {SimConnectOpenData?.dwApplicationVersionMajor}.{SimConnectOpenData?.dwApplicationVersionMinor} AppBuild {SimConnectOpenData?.dwApplicationBuildMajor}.{SimConnectOpenData?.dwApplicationBuildMinor} SimConnectVersion {SimConnectOpenData?.dwSimConnectVersionMajor}.{SimConnectOpenData?.dwSimConnectVersionMinor} SimConnectBuild {SimConnectOpenData?.dwSimConnectBuildMajor}.{SimConnectOpenData?.dwSimConnectBuildMinor}" : "";
+        public virtual string SimAppName => SimConnectOpenData?.szApplicationName != null ? SimConnectOpenData.szApplicationName : "";
         public virtual bool IsReceiveRunning { get; protected set; } = false;
         public virtual bool QuitReceived { get; protected set; } = false;
         protected virtual bool IsDisposed { get; set; } = false;
@@ -119,6 +124,26 @@ namespace CFIT.SimConnectLib
             return SimConnectInstance;
         }
 
+        public virtual bool CheckIsSim(SimVersion version)
+        {
+            if (version == SimVersion.MSFS2020)
+                return SimAppName?.Equals(AppName2020, StringComparison.InvariantCultureIgnoreCase) == true;
+            else if (version == SimVersion.MSFS2024)
+                return SimAppName?.Equals(AppName2024, StringComparison.InvariantCultureIgnoreCase) == true;
+            else
+                return false;
+        }
+
+        public virtual SimVersion GetSimVersion()
+        {
+            if (SimAppName?.Equals(AppName2020, StringComparison.InvariantCultureIgnoreCase) == true)
+                return SimVersion.MSFS2020;
+            else if (SimAppName?.Equals(AppName2024, StringComparison.InvariantCultureIgnoreCase) == true)
+                return SimVersion.MSFS2024;
+            else
+                return SimVersion.UNKNOWNN;
+        }
+
         public virtual void CreateMessageHook()
         {
             if (!WindowHook.IsHooked)
@@ -154,7 +179,7 @@ namespace CFIT.SimConnectLib
                     Modules.Add(moduleType.Name, module);
                     Logger.Debug($"Added new Module of Type '{moduleType?.Name}'");
                     if (IsReceiveRunning)
-                        module.OnOpen(SimConnectOpenData);
+                        module.OnOpen(SimConnectOpenData).GetAwaiter().GetResult();
                 }
                 return module;
             }
@@ -339,8 +364,20 @@ namespace CFIT.SimConnectLib
             _ = TaskTools.RunLogged(() => { CallbackResetState?.Invoke(this); }, Token);
         }
 
+        public virtual void SemaphoreRelease()
+        {
+            try
+            {
+                SimConnectSemaphore.Release();
+            }
+            catch (Exception ex)
+            {
+                if (ex is not SemaphoreFullException)
+                    Logger.LogException(ex);
+            }
+        }
 
-        public virtual bool Call(Action<SimConnect> action)
+        public virtual async Task<bool> Call(Action<SimConnect> action)
         {
             bool result = false;
             if (!IsSimConnectInitialized || SimConnectInstance == null)
@@ -348,14 +385,14 @@ namespace CFIT.SimConnectLib
 
             try
             {
-                SimConnectMutex.TryWaitOne();
+                await SimConnectSemaphore.WaitAsync();
                 action?.Invoke(SimConnectInstance);
-                SimConnectMutex.ReleaseMutex();
+                SemaphoreRelease();
                 result = true;
             }
             catch (Exception ex)
             {
-                SimConnectMutex.TryReleaseMutex();
+                SemaphoreRelease();
                 if (!QuitReceived)
                     Logger.LogException(ex);
                 else
@@ -365,17 +402,17 @@ namespace CFIT.SimConnectLib
             return result;
         }
 
-        internal virtual void ReceiveMessage()
+        internal virtual async Task ReceiveMessage()
         {
             try
             {
-                SimConnectMutex.TryWaitOne();
+                await SimConnectSemaphore.WaitAsync();
                 SimConnectInstance?.ReceiveMessage();
-                SimConnectMutex.ReleaseMutex();
+                SemaphoreRelease();
             }
             catch (Exception ex)
             {
-                SimConnectMutex.TryReleaseMutex();
+                SemaphoreRelease();
                 IsReceiveRunning = false;
 
                 if (ex.Message != "0xC00000B0")
@@ -416,18 +453,28 @@ namespace CFIT.SimConnectLib
             }
         }
 
-        protected virtual void CheckAircraftString()
+        protected virtual async Task CheckAircraftString()
         {
             if (string.IsNullOrWhiteSpace(AircraftString) && IsSessionStarted)
             {
-                if (StateManager.HasName(SimStateInfo.AircraftLoaded, out uint id) && StateManager.GetResource(id, out SimState state) && !state.IsReceived)
+                if (StateManager.HasName(SimStateInfo.AircraftLoaded, out uint id) && StateManager.GetResource(id, out SimState state) && !IsAircraftRequested)
                 {
                     Logger.Debug($"Request AircraftString");
-                    state.Request();
+                    await state.Request();
                     IsAircraftRequested = true;
                 }
                 else
+                {
                     Logger.Warning($"Can not request AircraftString!");
+                    if (StateManager.HasName(SimStateInfo.AircraftLoaded, out uint id2))
+                    {
+                        Logger.Debug($"State Manager has ID for Name: {id2}");
+                        if (StateManager.GetResource(id, out SimState state2))
+                        {
+                            Logger.Debug($"State Manager has Resource for ID - Received: {state2.IsReceived}");
+                        }
+                    }
+                }
             }
             else if (!string.IsNullOrWhiteSpace(AircraftString) && IsSessionStarted && IsAircraftCleared)
             {
@@ -443,11 +490,11 @@ namespace CFIT.SimConnectLib
             }
         }
 
-        public virtual void CheckState()
+        public virtual async Task CheckState()
         {
             if (IsReceiveRunning)
             {
-                CheckAircraftString();
+                await CheckAircraftString();
                 CallModules(module => { module.CheckState(); });
                 LastCameraValid = IsCameraValid;
             }
@@ -457,7 +504,7 @@ namespace CFIT.SimConnectLib
         {
             int count = 0;
             if (IsReceiveRunning)
-                CallModules(module => { count += module.CheckResources(); });
+                CallModules(async module => { count += await module.CheckResources(); });
 
             return count;
         }
@@ -467,7 +514,7 @@ namespace CFIT.SimConnectLib
             CallModules(module => module.ClearUnusedResources(clearAll));
         }
 
-        public event Action<SIMCONNECT_RECV_OPEN> OnOpen;
+        public event Func<SIMCONNECT_RECV_OPEN, Task> OnOpen;
         protected virtual void Handler_OnOpen(SimConnect sender, SIMCONNECT_RECV_OPEN evtData)
         {
             try
@@ -477,7 +524,7 @@ namespace CFIT.SimConnectLib
                     IsReceiveRunning = true;
                     SimConnectOpenData = evtData;
                     Logger.Information($"SimConnect OnOpen received: {SimVersionString}");
-                    try { OnOpen?.Invoke(evtData); } catch (Exception ex) { Logger.LogException(ex); }
+                    TaskTools.RunLogged(() => OnOpen?.Invoke(evtData));
                 }
                 else
                     Logger.Error("SimConnect is NULL!");
@@ -493,7 +540,7 @@ namespace CFIT.SimConnectLib
         {
             Logger.Information($"SimConnect OnQuit received.");
             QuitReceived = true;
-            try { OnQuit?.Invoke(evtData); } catch (Exception ex) { Logger.LogException(ex); }
+            TaskTools.RunLogged(() => OnQuit?.Invoke(evtData));
             Disconnect();
         }
 
@@ -501,7 +548,7 @@ namespace CFIT.SimConnectLib
         protected virtual void Handler_OnException(SimConnect sender, SIMCONNECT_RECV_EXCEPTION evtData)
         {
             Logger.Error($"Exception '{((SIMCONNECT_EXCEPTION)evtData.dwException) as Enum}' received: (dwException {evtData.dwException} | dwID {evtData.dwID} | dwSendID {evtData.dwSendID} | dwIndex {evtData.dwIndex})");
-            try { OnException?.Invoke(evtData); } catch { }
+            TaskTools.RunLogged(() => OnException?.Invoke(evtData));
         }
 
         public event Action<SIMCONNECT_RECV_SIMOBJECT_DATA> OnSimobjectData;
@@ -510,7 +557,7 @@ namespace CFIT.SimConnectLib
             if (Config.VerboseLogging)
                 Logger.Verbose($"OnSimobjectData: dwID {evtData.dwID} | dwRequestID {evtData.dwRequestID} | dwDefineID {evtData.dwDefineID} | dwObjectID {evtData.dwObjectID}");
 
-            try { OnSimobjectData?.Invoke(evtData); } catch (Exception ex) { Logger.LogException(ex); }
+            TaskTools.RunLogged(() => OnSimobjectData?.Invoke(evtData));
         }
 
         public event Action<SIMCONNECT_RECV_SYSTEM_STATE> OnReceiveSystemState;
@@ -519,7 +566,7 @@ namespace CFIT.SimConnectLib
             if (Config.VerboseLogging)
                 Logger.Verbose($"OnReceiveSystemState: dwID {evtData.dwID} | dwRequestID {evtData.dwRequestID} | dwInteger {evtData.dwInteger} | fFloat {evtData.fFloat} | szString {evtData.szString}");
 
-            try { OnReceiveSystemState?.Invoke(evtData); } catch (Exception ex) { Logger.LogException(ex); }
+            TaskTools.RunLogged(() => OnReceiveSystemState?.Invoke(evtData));
         }
 
         public event Action<SIMCONNECT_RECV_EVENT_FILENAME> OnReceiveEventFile;
@@ -528,7 +575,7 @@ namespace CFIT.SimConnectLib
             if (Config.VerboseLogging)
                 Logger.Verbose($"OnReceiveEventFile: dwID {evtData.dwID} | uGroupID {evtData.uGroupID} | uEventID {evtData.uEventID} | szFileName {evtData.szFileName}");
 
-            try { OnReceiveEventFile?.Invoke(evtData); } catch (Exception ex) { Logger.LogException(ex); }
+            TaskTools.RunLogged(() => OnReceiveEventFile?.Invoke(evtData));
         }
 
         public event Action<SIMCONNECT_RECV_EVENT_EX1> OnReceiveEventEx1;
@@ -538,7 +585,7 @@ namespace CFIT.SimConnectLib
             if (Config.VerboseLogging)
                 Logger.Verbose($"OnReceiveEventEx1: dwID {evtData.dwID} | uGroupID {evtData.uGroupID} | uEventID {evtData.uEventID} | dwData0 {evtData.dwData0} | dwData1 {evtData.dwData1} | dwData2 {evtData.dwData2} | dwData3 {evtData.dwData3} | dwData4 {evtData.dwData4}");
 
-            try { OnReceiveEventEx1?.Invoke(evtData); } catch (Exception ex) { Logger.LogException(ex); }
+            TaskTools.RunLogged(() => OnReceiveEventEx1?.Invoke(evtData));
         }
 
         public event Action<SIMCONNECT_RECV_EVENT> OnReceiveEvent;
@@ -548,7 +595,7 @@ namespace CFIT.SimConnectLib
             if (Config.VerboseLogging)
                 Logger.Verbose($"OnReceiveEvent: dwID {evtData.dwID} | uGroupID {evtData.uGroupID} | uEventID {evtData.uEventID} | dwData {evtData.dwData}");
 
-            try { OnReceiveEvent?.Invoke(evtData); } catch (Exception ex) { Logger.LogException(ex); }
+            TaskTools.RunLogged(() => OnReceiveEvent?.Invoke(evtData));
         }
 
         protected virtual void Dispose(bool disposing)
@@ -560,6 +607,7 @@ namespace CFIT.SimConnectLib
                     if (IsSimConnectInitialized)
                         Disconnect();
                     WindowHook?.ClearHook();
+                    SimConnectSemaphore.Dispose();
                 }
                 IsDisposed = true;
             }

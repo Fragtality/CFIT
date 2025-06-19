@@ -4,6 +4,7 @@ using CFIT.SimConnectLib.SimResources;
 using CFIT.SimConnectLib.SimVars;
 using Microsoft.FlightSimulator.SimConnect;
 using System;
+using System.Threading.Tasks;
 
 namespace CFIT.SimConnectLib.InputEvents
 {
@@ -16,29 +17,29 @@ namespace CFIT.SimConnectLib.InputEvents
         public override bool IsString { get { return Type == SimCastType.STRING; } }
         public override bool IsStruct { get { return false; } }
 
-        public override void Register()
+        public override async Task Register()
         {
-            Call(sc => sc.SubscribeInputEvent(Hash));
+            await Call(sc => sc.SubscribeInputEvent(Hash));
 
             IsRegistered = true;
             if (Manager.Manager.Config.VerboseLogging)
                 Logger.Verbose($"InputEvent '{Name}' ({Type}) registered on SimConnect");
         }
 
-        public override void Request()
+        public override async Task Request()
         {
             if (Manager.IsReceiveRunning)
             {
                 if (Manager.Manager.Config.VerboseLogging)
                     Logger.Verbose($"Requesting InputEvent '{Name}'");
-                Call(sc => sc.GetInputEvent(Id, Hash));
+                await Call(sc => sc.GetInputEvent(Id, Hash));
             }
         }
 
-        public override void Unregister(bool disconnect)
+        public override async Task Unregister(bool disconnect)
         {
             if (Manager.IsReceiveRunning && IsRegistered)
-                Call(sc => sc.UnsubscribeInputEvent(Hash));
+                await Call(sc => sc?.UnsubscribeInputEvent(Hash));
 
             IsRegistered = false;
             IsReceived = false;
@@ -56,29 +57,31 @@ namespace CFIT.SimConnectLib.InputEvents
             return true;
         }
 
-        public override bool WriteValue(object value)
+        public override async Task<bool> WriteValue(object value)
         {
-            lock (_lock)
+            try
             {
-                try
+                if (value == null)
                 {
-                    if (value == null)
-                    {
-                        Logger.Warning($"Value is null");
-                        return false;
-                    }
-
-                    SetStore(value);
-                    Logger.Debug($"Writing to InputEvent '{Name}' - Value: {ToString()}");
-                    Call(sc => sc.SetInputEvent(Hash, ValueStore));
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogException(ex);
+                    Logger.Warning($"Value is null");
                     return false;
                 }
+
+                SetStore(value);
+                await _lock.WaitAsync();
+                Logger.Debug($"Writing to InputEvent '{Name}' - Value: {ToString()}");
+                await Call(sc => sc.SetInputEvent(Hash, ValueStore));
+                return true;
             }
-            return true;
+            catch (Exception ex)
+            {
+                Logger.LogException(ex);
+                return false;
+            }
+            finally
+            {
+                try { _lock.Release(); } catch { }
+            }
         }
 
         public override string ToString()

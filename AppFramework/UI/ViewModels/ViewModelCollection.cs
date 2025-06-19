@@ -243,7 +243,15 @@ namespace CFIT.AppFramework.UI.ViewModels
 
         public virtual IEnumerator GetEnumerator()
         {
-            return new TransformEnumerator(Source, Transformator);
+            try
+            {
+                return new TransformEnumerator(Source, Transformator);
+            }
+            catch
+            {
+                Logger.Debug($"Could not create TransformEnumerator!");
+                return null;
+            }
         }
 
         public virtual TransformEnumerator GetTransformEnumerator()

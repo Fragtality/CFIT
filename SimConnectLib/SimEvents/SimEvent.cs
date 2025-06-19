@@ -3,6 +3,7 @@ using CFIT.SimConnectLib.Definitions;
 using CFIT.SimConnectLib.SimResources;
 using Microsoft.FlightSimulator.SimConnect;
 using System;
+using System.Threading.Tasks;
 
 namespace CFIT.SimConnectLib.SimEvents
 {
@@ -16,25 +17,25 @@ namespace CFIT.SimConnectLib.SimEvents
         public override bool IsStruct { get { return false; } }
         public virtual bool HasMultipleParams { get; protected set; } = false;
 
-        public override void Register()
+        public override async Task Register()
         {
-            Call(sc => sc.MapClientEventToSimEvent(Id, Name));
-            Call(sc => sc.AddClientEventToNotificationGroup(GroupId, Id, false));
+            await Call(sc => sc.MapClientEventToSimEvent(Id, Name));
+            await Call(sc => sc.AddClientEventToNotificationGroup(GroupId, Id, false));
 
             IsRegistered = true;
             if (Manager.Manager.Config.VerboseLogging)
                 Logger.Verbose($"Event '{Name}' registered on SimConnect with ID '{Id}'");
         }
 
-        public override void Request()
+        public override Task Request()
         {
-            
+            return Task.CompletedTask;
         }
 
-        public override void Unregister(bool disconnect)
+        public override async Task Unregister(bool disconnect)
         {
             if (Manager.IsReceiveRunning && IsRegistered)
-                Call(sc => sc.RemoveClientEvent(GroupId, Id));
+                await Call(sc => sc?.RemoveClientEvent(GroupId, Id));
 
             IsRegistered = false;
             IsReceived = false;
@@ -75,41 +76,43 @@ namespace CFIT.SimConnectLib.SimEvents
             }
         }
 
-        public override bool WriteValue(object value)
+        public override async Task<bool> WriteValue(object value)
         {
-            return WriteValues([value]);
+            return await WriteValues([value]);
         }
 
-        public override bool WriteValues(object[] values)
+        public override async Task<bool> WriteValues(object[] values)
         {
             SetValues(values);
-            return Write();
+            return await Write();
         }
 
-        protected virtual bool Write()
+        protected virtual async Task<bool> Write()
         {
-            lock (_lock)
+            try
             {
-                try
+                if (EventValues == null || EventValues?.Length == 0)
                 {
-                    if (EventValues == null || EventValues?.Length == 0)
-                    {
-                        Logger.Warning($"Illegal Value Count - null {EventValues == null} len {EventValues?.Length}");
-                        return false;
-                    }
-
-                    Logger.Verbose($"Writing to Event '{Name}' - Values: {string.Join(',', EventValues)}");
-                    if (HasMultipleParams)
-                        Call(sc => sc.TransmitClientEvent_EX1(SimConnect.SIMCONNECT_OBJECT_ID_USER, Id, GroupId, SIMCONNECT_EVENT_FLAG.DEFAULT,
-                            EventValues[0], EventValues[1], EventValues[2], EventValues[3], EventValues[4]));
-                    else
-                        Call(sc => sc.TransmitClientEvent(SimConnect.SIMCONNECT_OBJECT_ID_USER, Id, EventValues[0], GroupId, SIMCONNECT_EVENT_FLAG.DEFAULT));
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogException(ex);
+                    Logger.Warning($"Illegal Value Count - null {EventValues == null} len {EventValues?.Length}");
                     return false;
                 }
+
+                Logger.Verbose($"Writing to Event '{Name}' - Values: {string.Join(',', EventValues)}");
+                await _lock.WaitAsync();
+                if (HasMultipleParams)
+                    await Call(sc => sc.TransmitClientEvent_EX1(SimConnect.SIMCONNECT_OBJECT_ID_USER, Id, GroupId, SIMCONNECT_EVENT_FLAG.DEFAULT,
+                        EventValues[0], EventValues[1], EventValues[2], EventValues[3], EventValues[4]));
+                else
+                    await Call(sc => sc.TransmitClientEvent(SimConnect.SIMCONNECT_OBJECT_ID_USER, Id, EventValues[0], GroupId, SIMCONNECT_EVENT_FLAG.DEFAULT));
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex);
+                return false;
+            }
+            finally
+            {
+                try { _lock.Release(); } catch { }
             }
             return true;
         }

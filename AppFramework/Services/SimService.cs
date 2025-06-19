@@ -16,8 +16,6 @@ namespace CFIT.AppFramework.Services
     {
         public virtual SimConnectController Controller { get; }
         public virtual SimConnectManager Manager { get { return Controller.SimConnect; } }
-        public virtual bool IsMsfs2020 => Controller.IsMsfs2020Running;
-        public virtual bool IsMsfs2024 => Controller.IsMsfs2024Running;
 
         public SimService(TConfig config) : base(config)
         {
@@ -38,18 +36,20 @@ namespace CFIT.AppFramework.Services
                 await Task.Delay(Config.CheckInterval, Token);
         }
 
-        protected override void FreeResources()
+        protected override Task FreeResources()
         {
             base.FreeResources();
             Manager.Dispose();
+            return Task.CompletedTask;
         }
 
-        protected override void InitReceivers()
+        protected override Task InitReceivers()
         {
             Controller.OnSimStarted += SendMessage<MsgSimStarted>;
             Controller.OnSimStopped += SendMessage<MsgSimStopped>;
             Controller.OnSessionReady += SendMessage<MsgSessionReady>;
             Controller.OnSessionEnded += SendMessage<MsgSessionEnded>;
+            return Task.CompletedTask;
         }
 
         protected virtual void SendMessage<TMessage>(SimConnectManager sender) where TMessage : MessageSimulator
@@ -58,10 +58,11 @@ namespace CFIT.AppFramework.Services
             MessageService.Send(MessageSimulator.Create<TMessage>(sender));
         }
 
-        public override void Stop()
+        public override Task Stop()
         {
             base.Stop();
             Controller.Cancel();
+            return Task.CompletedTask;
         }
     }
 }

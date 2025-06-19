@@ -2,6 +2,7 @@
 using CFIT.SimConnectLib.SimResources;
 using Microsoft.FlightSimulator.SimConnect;
 using System;
+using System.Threading.Tasks;
 
 namespace CFIT.SimConnectLib.SimStates
 {
@@ -15,16 +16,16 @@ namespace CFIT.SimConnectLib.SimStates
         public override bool IsStruct { get { return false; } }
         public virtual bool PollEvent { get; protected set; } = false;
 
-        public override void Register()
+        public override async Task Register()
         {
             if (UpdateType == SimStateUpdate.SUBSCRIBE || UpdateType == SimStateUpdate.BOTH)
             {
-                Call(sc => sc.SubscribeToSystemEvent(Id, Name));
+                await Call(sc => sc.SubscribeToSystemEvent(Id, Name));
             }
             IsRegistered = true;
         }
 
-        public override void Request()
+        public override async Task Request()
         {
             if (UpdateType == SimStateUpdate.SUBSCRIBE)
             {
@@ -34,7 +35,7 @@ namespace CFIT.SimConnectLib.SimStates
 
             try
             {
-                Call(sc => sc.RequestSystemState(Id, Name));
+                await Call(sc => sc.RequestSystemState(Id, Name));
             }
             catch (Exception ex)
             {
@@ -42,11 +43,11 @@ namespace CFIT.SimConnectLib.SimStates
             }
         }
 
-        public override void Unregister(bool disconnect)
+        public override async Task Unregister(bool disconnect)
         {
             if ((UpdateType == SimStateUpdate.SUBSCRIBE || UpdateType == SimStateUpdate.BOTH) && Manager.IsReceiveRunning && IsRegistered)
             {
-                Call(sc => sc.UnsubscribeFromSystemEvent(Id));
+                await Call(sc => sc?.UnsubscribeFromSystemEvent(Id));
             }
             IsRegistered = false;
             IsReceived = false;
@@ -86,9 +87,9 @@ namespace CFIT.SimConnectLib.SimStates
             PollEvent = true;
         }
 
-        public override bool WriteValue(object value)
+        public override Task<bool> WriteValue(object value)
         {
-            return false;
+            return Task.FromResult(false);
         }
 
         public override string ToString()

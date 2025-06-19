@@ -158,7 +158,7 @@ namespace CFIT.SimConnectLib
                 _ = TaskTools.RunLogged(() => { OnSessionEnded?.Invoke(SimConnect); }, Token);
             }
 
-            SimConnect.CheckState();
+            await SimConnect.CheckState();
             SimConnect.CheckResources();
 
             if (!IsCanceled)

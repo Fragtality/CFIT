@@ -45,9 +45,9 @@ namespace CFIT.SimConnectLib.SimStates
             return false;
         }
 
-        protected virtual void PollTick(object? sender, EventArgs e)
+        protected virtual async void PollTick(object? sender, EventArgs e)
         {
-            Resource.Request();
+            await Resource.Request();
         }
 
         public virtual void SetPollInterval(int pollInterval)

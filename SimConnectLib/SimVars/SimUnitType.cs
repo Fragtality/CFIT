@@ -3,6 +3,7 @@ using Microsoft.FlightSimulator.SimConnect;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 
 namespace CFIT.SimConnectLib.SimVars
 {
@@ -75,48 +76,48 @@ namespace CFIT.SimConnectLib.SimVars
             };
         }
 
-        public virtual void RegisterDefineStruct(MappedID id, SimConnectManager manager)
+        public virtual async Task RegisterDefineStruct(MappedID id, SimConnectManager manager)
         {
             switch (CastType)
             {
                 case SimCastType.DOUBLE:
-                    manager.Call(sc => sc.RegisterDataDefineStruct<double>(id));
+                    await manager.Call(sc => sc.RegisterDataDefineStruct<double>(id));
                     break;
                 case SimCastType.FLOAT:
-                    manager.Call(sc => sc.RegisterDataDefineStruct<float>(id));
+                    await manager.Call(sc => sc.RegisterDataDefineStruct<float>(id));
                     break;
                 case SimCastType.INT:
-                    manager.Call(sc => sc.RegisterDataDefineStruct<int>(id));
+                    await manager.Call(sc => sc.RegisterDataDefineStruct<int>(id));
                     break;
                 case SimCastType.LONG:
-                    manager.Call(sc => sc.RegisterDataDefineStruct<long>(id));
+                    await manager.Call(sc => sc.RegisterDataDefineStruct<long>(id));
                     break;
                 case SimCastType.BOOL:
-                    manager.Call(sc => sc.RegisterDataDefineStruct<bool>(id));
+                    await manager.Call(sc => sc.RegisterDataDefineStruct<bool>(id));
                     break;
                 case SimCastType.STRING:
-                    manager.Call(sc => sc.RegisterDataDefineStruct<StructString>(id));
+                    await manager.Call(sc => sc.RegisterDataDefineStruct<StructString>(id));
                     break;
                 case SimCastType.STRUCT_XYZ:
-                    manager.Call(sc => sc.RegisterDataDefineStruct<StructXYZ>(id));
+                    await manager.Call(sc => sc.RegisterDataDefineStruct<StructXYZ>(id));
                     break;
                 case SimCastType.STRUCT_PBH:
-                    manager.Call(sc => sc.RegisterDataDefineStruct<StructPBH>(id));
+                    await manager.Call(sc => sc.RegisterDataDefineStruct<StructPBH>(id));
                     break;
                 case SimCastType.STRUCT_LLA:
-                    manager.Call(sc => sc.RegisterDataDefineStruct<StructLatLonAlt>(id));
+                    await manager.Call(sc => sc.RegisterDataDefineStruct<StructLatLonAlt>(id));
                     break;
                 case SimCastType.STRUCT_LLAPBH:
-                    manager.Call(sc => sc.RegisterDataDefineStruct<StructLatLonAltPBH>(id));
+                    await manager.Call(sc => sc.RegisterDataDefineStruct<StructLatLonAltPBH>(id));
                     break;
                 case SimCastType.STRUCT_PID:
-                    manager.Call(sc => sc.RegisterDataDefineStruct<StructPID>(id));
+                    await manager.Call(sc => sc.RegisterDataDefineStruct<StructPID>(id));
                     break;
                 case SimCastType.STRUCT_FUEL:
-                    manager.Call(sc => sc.RegisterDataDefineStruct<StructFuelLevels>(id));
+                    await manager.Call(sc => sc.RegisterDataDefineStruct<StructFuelLevels>(id));
                     break;
                 default:
-                    manager.Call(sc => sc.RegisterDataDefineStruct<double>(id));
+                    await manager.Call(sc => sc.RegisterDataDefineStruct<double>(id));
                     break;
             }
         }
@@ -200,7 +201,7 @@ namespace CFIT.SimConnectLib.SimVars
         {
             var query = typeof(SimUnitType).GetRuntimeFields().Where(i => i.IsLiteral);
             var obj = new SimUnitType("number");
-            return query.Select(f => f.GetRawConstantValue().ToString()).ToList();
+            return [.. query.Select(f => f.GetRawConstantValue().ToString())];
         }
 
         public const string Ac = "ac";

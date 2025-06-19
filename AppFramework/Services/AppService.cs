@@ -31,10 +31,11 @@ namespace CFIT.AppFramework.Services
 
         protected abstract void CreateServiceControllers();
 
-        protected override void InitReceivers()
+        protected override Task InitReceivers()
         {
             base.InitReceivers();
             ReceiverStore.Add<MsgSimStarted>();
+            return Task.CompletedTask;
         }
 
         protected virtual bool RunCondition()
@@ -53,7 +54,7 @@ namespace CFIT.AppFramework.Services
                 return;
             }
 
-            StartServiceControllers();
+            await StartServiceControllers();
             if (Definition.WaitForSim)
             {
                 Logger.Information($"Waiting for Simulator ...");
@@ -65,7 +66,7 @@ namespace CFIT.AppFramework.Services
                 await MainLoop();
             Logger.Debug($"MainLoop ended. (ExecutionAllowed {IsExecutionAllowed} RunCondition {RunCondition()})");
 
-            StopServiceControllers();
+            await StopServiceControllers();
 
             if (!RunCondition())
             {
@@ -80,27 +81,36 @@ namespace CFIT.AppFramework.Services
 
         protected abstract Task MainLoop();
 
-        protected virtual void StartServiceControllers()
+        protected virtual Task StartServiceControllers()
         {
             CallOnControllers((controller) => controller.Start());
+            return Task.CompletedTask;
         }
 
-        protected virtual void StopServiceControllers()
+        protected virtual async Task StopServiceControllers()
         {
-            CallOnControllers((controller) => controller.Stop());
+            await CallOnControllers(async (controller) => await controller.Stop());
         }
 
-        protected virtual void CallOnControllers(Action<ServiceController<TApp, TService, TConfig, TDefinition>> action)
+        public override async Task Stop()
+        {
+            await StopServiceControllers();
+            await base.Stop();
+        }
+
+        protected virtual Task CallOnControllers(Action<ServiceController<TApp, TService, TConfig, TDefinition>> action)
         {
             foreach (var controller in ServiceControllers.Keys)
                 action.Invoke(controller);
+            return Task.CompletedTask;
         }
 
-        protected override void FreeResources()
+        protected override Task FreeResources()
         {
             base.FreeResources();
             CallOnControllers((controller) => controller.Dispose());
             ReceiverStore.Remove<MsgSimStarted>();
+            return Task.CompletedTask;
         }
     }
 }

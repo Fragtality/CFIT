@@ -5,6 +5,7 @@ using CFIT.SimConnectLib.SimResources;
 using Microsoft.FlightSimulator.SimConnect;
 using System.Collections.Concurrent;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace CFIT.SimConnectLib.SimEvents
 {
@@ -93,21 +94,21 @@ namespace CFIT.SimConnectLib.SimEvents
             return new SimEventSubscription(@event);
         }
 
-        public override void CheckState()
+        public override Task CheckState()
         {
-            
+            return Task.CompletedTask;
         }
 
-        protected override void Unregister(bool disconnect)
+        protected override async Task Unregister(bool disconnect)
         {
             if (disconnect && Manager.IsReceiveRunning)
             {
-                Call(sc => sc.ClearNotificationGroup(EVENT_GROUP_SUBSCRIBED));
-                Call(sc => sc.ClearNotificationGroup(EVENT_GROUP_COMMAND));
+                await Call(sc => sc.ClearNotificationGroup(EVENT_GROUP_SUBSCRIBED));
+                await Call(sc => sc.ClearNotificationGroup(EVENT_GROUP_COMMAND));
             }
         }
 
-        public override void ClearUnusedResources(bool clearAll)
+        public override async Task ClearUnusedResources(bool clearAll)
         {
             if (!clearAll)
             {
@@ -116,7 +117,7 @@ namespace CFIT.SimConnectLib.SimEvents
                 {
                     Logger.Debug($"Unregister unused SimEvents: {unused.Count()}");
                     foreach (var simres in unused)
-                        simres.Value.Unregister(false);
+                        await simres.Value.Unregister(false);
                 }
             }
             else
@@ -125,7 +126,7 @@ namespace CFIT.SimConnectLib.SimEvents
                 var noninternal = Resources.Where(kv => !kv.Value.IsInternal).Select(kv => kv.Key).ToList();
                 Logger.Debug($"Removing all non-internal SimEvents: {noninternal.Count}");
                 foreach (var key in noninternal)
-                    Resources[key].Unregister(true);
+                    await Resources[key].Unregister(true);
                 foreach (var key in noninternal)
                     Resources.Remove(key);
 
@@ -133,21 +134,21 @@ namespace CFIT.SimConnectLib.SimEvents
             }
         }
 
-        public virtual bool SendEvent(string eventName, object[] parameter)
+        public virtual async Task<bool> SendEvent(string eventName, object[] parameter)
         {
             if (HasName(eventName, out uint id))
             {
-                return Resources[id].WriteValues(parameter);
+                return await Resources[id].WriteValues(parameter);
             }
             else if (!SendEvents.TryGetValue(eventName, out SimEventSubscription sub))
             {
                 sub = SubscribeCommand(eventName);
-                sub.Resource.Register();
+                await sub.Resource.Register();
                 SendEvents.Add(eventName, sub);
-                return sub.WriteValues(parameter);
+                return await sub.WriteValues(parameter);
             }
             else
-                return sub.WriteValues(parameter);
+                return await sub.WriteValues(parameter);
         }
     }
 }

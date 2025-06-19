@@ -4,6 +4,7 @@ using CFIT.SimConnectLib.Definitions;
 using CFIT.SimConnectLib.SimResources;
 using Microsoft.FlightSimulator.SimConnect;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace CFIT.SimConnectLib.SimVars
 {
@@ -19,14 +20,14 @@ namespace CFIT.SimConnectLib.SimVars
             Manager.OnSimobjectData += Update;
         }
 
-        public override void CheckState()
+        public override Task CheckState()
         {
-
+            return Task.CompletedTask;
         }
 
-        protected override void Unregister(bool disconnect)
+        protected override Task Unregister(bool disconnect)
         {
-            
+            return Task.CompletedTask;
         }
 
         protected virtual void Update(SIMCONNECT_RECV_SIMOBJECT_DATA evtData)
@@ -82,7 +83,7 @@ namespace CFIT.SimConnectLib.SimVars
             return new SimVarSubscription(variable);
         }
 
-        public override void ClearUnusedResources(bool clearAll)
+        public override async Task ClearUnusedResources(bool clearAll)
         {
             if (!clearAll)
             {
@@ -91,7 +92,7 @@ namespace CFIT.SimConnectLib.SimVars
                 {
                     Logger.Debug($"Unregister unused SimVars: {unused.Count()}");
                     foreach (var simres in unused)
-                        simres.Value.Unregister(false);
+                        await simres.Value.Unregister(false);
                 }
             }
             else
@@ -99,7 +100,7 @@ namespace CFIT.SimConnectLib.SimVars
                 var noninternal = Resources.Where(kv => !kv.Value.IsInternal).Select(kv => kv.Key).ToList();
                 Logger.Debug($"Removing all non-internal SimVars: {noninternal.Count}");
                 foreach (var key in noninternal)
-                    Resources[key].Unregister(true);
+                    await Resources[key].Unregister(true);
                 foreach (var key in noninternal)
                     Resources.Remove(key);
 

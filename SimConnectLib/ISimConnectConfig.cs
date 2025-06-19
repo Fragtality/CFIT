@@ -17,6 +17,8 @@
         public uint SizeEvents { get; }
         public uint SizeSimStates { get { return 100; } }
         public uint SizeInputEvents { get; }
+        public int InputEventsMaxAttempts => 3;
+        public int InputEventScanDelay => 2500;
 
         public bool VerboseLogging { get; }
 

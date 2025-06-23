@@ -19,6 +19,7 @@ namespace CFIT.AppFramework.Services
         public static TService Instance { get; private set; }
         public virtual SimService<TApp, TService, TConfig, TDefinition> SimService { get; }
         public virtual SimConnectManager SimConnect { get { return SimService?.Manager; } }
+        public virtual bool SimStoppedReceived { get; protected set; } = false;
         protected virtual ConcurrentDictionary<ServiceController<TApp, TService, TConfig, TDefinition>, bool> ServiceControllers { get; } = [];
 
         public AppService(TConfig config) : base(config)
@@ -35,12 +36,14 @@ namespace CFIT.AppFramework.Services
         {
             base.InitReceivers();
             ReceiverStore.Add<MsgSimStarted>();
+            ReceiverStore.Add<MsgSimStopped>();
+            ReceiverStore.Get<MsgSimStopped>().OnMessage += (_) => SimStoppedReceived = true;
             return Task.CompletedTask;
         }
 
         protected virtual bool RunCondition()
         {
-            return !Definition.RequireSimRunning && !SimConnect.QuitReceived || Definition.RequireSimRunning && SimService.Controller.IsSimRunning && !SimConnect.QuitReceived;
+            return !Definition.RequireSimRunning && !SimConnect.QuitReceived && !SimStoppedReceived || Definition.RequireSimRunning && SimService.Controller.IsSimRunning && !SimConnect.QuitReceived && !SimStoppedReceived;
         }
 
         protected override async Task DoRun()

@@ -171,7 +171,7 @@ namespace CFIT.AppFramework
             Logger.Information($"Creating Resource Stores ...");
             InitResourceStores();
 
-            Logger.Information($"Starting App Log ({Config.LogFile}) ...");
+            Logger.Information($"Starting App Log ({Config.LogFile} / {Config.SizeLimit}) ...");
             await StartAppLogger();
 
             Logger.Information($"Starting App Service ...");

@@ -22,5 +22,20 @@ namespace CFIT.AppTools
 
             return groupIndices.Count == groups.Count;
         }
+
+        public static bool GroupMatches(this Regex regex, string input, int groupIndex, out string group)
+        {
+            var matches = regex.Matches(input);
+            if (matches?.Count > 0 && matches[matches.Count - 1]?.Groups?.Count >= groupIndex)
+            {
+                group = matches[matches.Count - 1].Groups[groupIndex].Value;
+                return !string.IsNullOrWhiteSpace(group);
+            }
+            else
+            {
+                group = "";
+                return false;
+            }
+        }
     }
 }

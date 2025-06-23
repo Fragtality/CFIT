@@ -24,6 +24,8 @@ namespace CFIT.AppFramework.UI.ViewModels
         public virtual Func<Tin, Tout> Transformator => ItemsSource.Transformator;
         public virtual Func<Tin, bool> Validator => ItemsSource.Validator;
         public virtual bool GetTransformedSelection { get; set; } = true;
+        public virtual bool AskConfirmation { get; set; } = false;
+        public virtual Func<bool> ConfirmationFunc { get; set; } = () => true;
 
         public event Action ClearInputs;
         public virtual Selector SelectorElement { get; }
@@ -216,7 +218,7 @@ namespace CFIT.AppFramework.UI.ViewModels
 
             RemoveCommand = new CommandWrapper(() =>
             {
-                if (func())
+                if ((func() && !AskConfirmation) || (AskConfirmation && func() && ConfirmationFunc?.Invoke() == true))
                 {
                     ItemsSource.Remove(SelectedItem);
                     SelectorElement.SelectedIndex = -1;

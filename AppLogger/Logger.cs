@@ -35,7 +35,7 @@ namespace CFIT.AppLogger
             LoggerConfiguration loggerConfiguration;
             if (config.SizeLimit > 0)
                 loggerConfiguration = new LoggerConfiguration().WriteTo.File(FileName, rollingInterval: config.LogInterval, retainedFileCountLimit: config.LogCount, fileSizeLimitBytes: config.SizeLimit,
-                                                    outputTemplate: config.LogTemplate);
+                                                    rollOnFileSizeLimit: true, outputTemplate: config.LogTemplate);
             else
                 loggerConfiguration = new LoggerConfiguration().WriteTo.File(FileName, rollingInterval: config.LogInterval, retainedFileCountLimit: config.LogCount,
                                                     outputTemplate: config.LogTemplate);
@@ -50,7 +50,7 @@ namespace CFIT.AppLogger
             File.Create(FileName).Close();
 
             LoggerConfiguration loggerConfiguration = new LoggerConfiguration()
-                        .WriteTo.File(FileName, outputTemplate: template, fileSizeLimitBytes: MaximumSize);
+                        .WriteTo.File(FileName, outputTemplate: template, fileSizeLimitBytes: MaximumSize, rollOnFileSizeLimit: true);
             SetLogLevel(loggerConfiguration, minimumLevel);
             MinimumLevel = minimumLevel;
             Serilog.Log.Logger = loggerConfiguration.CreateLogger();

@@ -29,7 +29,7 @@ namespace CFIT.AppFramework.AppConfig
         [JsonIgnore]
         public virtual string LogFile { get { return $"{Definition.ProductName}.log"; } }
         public virtual RollingInterval LogInterval { get; set; } = RollingInterval.Day;
-        public virtual int SizeLimit { get; set; } = 1024 * 1024;
+        public virtual int SizeLimit { get; set; } = 10 * 1024 * 1024;
         public virtual int LogCount { get; set; } = 3;
         public virtual string LogTemplate { get; set; } = "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] [{SourceContext}] {Message} {NewLine}";
         public virtual LogLevel LogLevel { get; set; } = LogLevel.Debug;

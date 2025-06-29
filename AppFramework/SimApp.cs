@@ -251,47 +251,56 @@ namespace CFIT.AppFramework
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github.v3+json"));
                 client.DefaultRequestHeaders.Add("User-Agent", ".NET Foundation Repository Reporter");
 
-                string json = await client.GetStringAsync($"{Definition.ProductGitApi}/releases/latest");
-                Logger.Debug($"json received: len {json?.Length}");
-                JsonNode node = JsonSerializer.Deserialize<JsonNode>(json);
-                string tag_name = node["tag_name"].ToString();
-                if (tag_name.StartsWith('v'))
-                    tag_name = tag_name[1..];
-
-                if (Version.TryParse(tag_name, out Version repoVersion))
+                Version repoVersion = appVersion;
+                try
                 {
-                    Logger.Debug($"Comparing {repoVersion} to {appVersion}");
-                    if (repoVersion > appVersion)
+                    Logger.Debug($"Checking Release Versions ...");
+                    string json = await client.GetStringAsync($"{Definition.ProductGitApi}/releases/latest");
+                    Logger.Debug($"json received: len {json?.Length}");
+                    JsonNode node = JsonSerializer.Deserialize<JsonNode>(json);
+                    string tag_name = node["tag_name"].ToString();
+                    if (tag_name.StartsWith('v'))
+                        tag_name = tag_name[1..];
+
+                    if (Version.TryParse(tag_name, out Version version))
+                        repoVersion = version;
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogException(ex);
+                }
+
+                Logger.Debug($"Comparing {repoVersion} to {appVersion}");
+                if (repoVersion > appVersion)
+                {
+                    UpdateDetected = true;
+                    UpdateVersion = repoVersion.ToString(3);
+                    Logger.Information($"New Stable Version detected: {UpdateVersion}");
+                }
+                else if (repoVersion <= appVersion)
+                {
+                    if (Definition.ProductVersionCheckDev)
                     {
-                        UpdateDetected = true;
-                        UpdateVersion = repoVersion.ToString(3);
-                        Logger.Information($"New Stable Version detected: {UpdateVersion}");
-                    }
-                    else if (repoVersion <= appVersion)
-                    {
-                        if (Definition.ProductVersionCheckDev)
+                        string json = await client.GetStringAsync(Definition.ProductDevVersionFile);
+                        Logger.Debug($"json received: len {json?.Length}");
+                        JsonNode node = JsonSerializer.Deserialize<JsonNode>(json);
+                        string timestamp = Definition.ProductTimestamp;
+                        Logger.Debug($"Comparing {node["Timestamp"]!} to {timestamp}");
+                        if (string.Compare(node["Timestamp"]!.ToString(), timestamp, StringComparison.InvariantCultureIgnoreCase) > 0)
                         {
-                            json = await client.GetStringAsync(Definition.ProductDevVersionFile);
-                            Logger.Debug($"json received: len {json?.Length}");
-                            node = JsonSerializer.Deserialize<JsonNode>(json);
-                            string timestamp = Definition.ProductTimestamp;
-                            Logger.Debug($"Comparing {node["Timestamp"]!} to {timestamp}");
-                            if (string.Compare(node["Timestamp"]!.ToString(), timestamp, StringComparison.InvariantCultureIgnoreCase) > 0)
-                            {
-                                UpdateDetected = true;
-                                UpdateVersion = node["Timestamp"]!.ToString();
-                                UpdateIsDev = true;
-                                Logger.Information($"New Dev Version detected: {UpdateVersion}");
-                            }
-                            else
-                                Logger.Information($"Application up-to-date!");
+                            UpdateDetected = true;
+                            UpdateVersion = node["Timestamp"]!.ToString();
+                            UpdateIsDev = true;
+                            Logger.Information($"New Dev Version detected: {UpdateVersion}");
                         }
                         else
                             Logger.Information($"Application up-to-date!");
                     }
                     else
-                        Logger.Debug($"Mismatch of Repo to App Version ({repoVersion} vs. {appVersion})");
+                        Logger.Information($"Application up-to-date!");
                 }
+                else
+                    Logger.Debug($"Mismatch of Repo to App Version ({repoVersion} vs. {appVersion})");
             }
             catch (Exception ex)
             {

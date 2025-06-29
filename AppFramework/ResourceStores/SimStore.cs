@@ -1,4 +1,5 @@
-﻿using CFIT.AppTools;
+﻿using CFIT.AppLogger;
+using CFIT.AppTools;
 using CFIT.SimConnectLib;
 using CFIT.SimConnectLib.SimResources;
 using CFIT.SimConnectLib.SimVars;
@@ -64,15 +65,23 @@ namespace CFIT.AppFramework.ResourceStores
         public virtual ISimResourceSubscription Remove(string name)
         {
             if (SimResources.TryGetValue(name, out ISimResourceSubscription subscription))
-            {
-                subscription.Unsubscribe();
-                SimResources.Remove(name);
+            {                
                 if (RefCount.ContainsKey(name))
                 {
                     if (RefCount[name] <= 1)
+                    {
+                        subscription.Unsubscribe();
+                        SimResources.Remove(name);
                         RefCount.Remove(name);
+                    }
                     else
                         RefCount[name] = RefCount[name] - 1;
+                }
+                else
+                {
+                    Logger.Warning($"The Resource '{name}' has no Ref Count");
+                    subscription.Unsubscribe();
+                    SimResources.Remove(name);
                 }
             }
 

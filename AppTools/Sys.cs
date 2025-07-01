@@ -140,10 +140,10 @@ namespace CFIT.AppTools
 
         public static bool IsEnter(KeyEventArgs e)
         {
-            if (e.Key != Key.Enter || e.Key != Key.Return)
-                return false;
-            else
+            if (e.Key == Key.Enter || e.Key == Key.Return)
                 return true;
+            else
+                return false;
         }
 
         public const uint WM_CLOSE = 0x0010;

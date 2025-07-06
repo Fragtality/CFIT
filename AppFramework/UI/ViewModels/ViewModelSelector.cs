@@ -28,8 +28,11 @@ namespace CFIT.AppFramework.UI.ViewModels
         public virtual Func<bool> ConfirmationFunc { get; set; } = () => true;
 
         public event Action ClearInputs;
+        public event Action OnSelectionChanging;
+        public event Action OnSelectionChanged;
+        public virtual bool IsClearing { get; protected set; } = false;
         public virtual Selector SelectorElement { get; }
-        public virtual bool HasSelection => SelectorElement?.SelectedIndex >= 0;
+        public virtual bool HasSelection => SelectorElement?.SelectedIndex >= 0 && !IsClearing;
         protected virtual UiIconLoader IconLoader { get; set; }
         public virtual BitmapImage ImageAdd { get; protected set; }
         public virtual BitmapImage ImageEdit { get; protected set; }
@@ -39,12 +42,14 @@ namespace CFIT.AppFramework.UI.ViewModels
         public virtual CommandWrapper ClearCommand { get; protected set; }
 
         [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(SelectedIndex))]
         [NotifyPropertyChangedFor(nameof(SelectedDisplayItem))]
         [NotifyPropertyChangedFor(nameof(HasSelection))]
         [NotifyPropertyChangedFor(nameof(IsUpdating))]
         [NotifyPropertyChangedFor(nameof(ImageSource))]
         protected Tin _SelectedItem = default;
         public virtual Tout SelectedDisplayItem => Transformator(SelectedItem);
+        public virtual int SelectedIndex => SelectorElement?.SelectedIndex ?? -1;
         public virtual bool IsUpdating => ItemsSource.UpdatesAllowed && HasSelection;
 
         public ViewModelSelector(Selector selector, ViewModelCollection<Tin, Tout> source)
@@ -80,6 +85,8 @@ namespace CFIT.AppFramework.UI.ViewModels
 
         protected virtual void SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            try { OnSelectionChanging?.Invoke(); } catch { }
+
             if (SelectorElement != null)
             {
                 try
@@ -100,6 +107,8 @@ namespace CFIT.AppFramework.UI.ViewModels
                     SelectedItem = default;
                 }
             }
+
+            try { OnSelectionChanged?.Invoke(); } catch { }
         }
 
         public virtual void SetSelectedIndex(int index)
@@ -109,8 +118,10 @@ namespace CFIT.AppFramework.UI.ViewModels
 
         public virtual void ClearSelection()
         {
+            IsClearing = true;
             ClearInputs?.Invoke();
             SetSelectedIndex(-1);
+            IsClearing = false;
         }
 
         protected virtual void NotifyCanExecuteChanged()

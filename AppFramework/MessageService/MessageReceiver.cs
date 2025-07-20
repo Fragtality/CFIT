@@ -45,15 +45,16 @@ namespace CFIT.AppFramework.MessageService
             }, Token);
         }
 
-        public async Task<TMessage> ReceiveAsync(bool clearQueue = false, int timeoutMs = int.MaxValue)
+        public async Task<TMessage> ReceiveAsync(bool clearQueue = false, int timeoutMs = int.MaxValue, CancellationToken? token = null)
         {
+            CancellationToken cancellationToken = token ?? Token;
             if (clearQueue)
                 Clear();
 
             int waitTime = 0;
-            while (!IsReceived && !IsCanceled && !Token.IsCancellationRequested && waitTime < timeoutMs)
+            while (!IsReceived && !IsCanceled && !cancellationToken.IsCancellationRequested && waitTime < timeoutMs)
             {
-                await Task.Delay(CheckIntervalMs, Token);
+                await Task.Delay(CheckIntervalMs, cancellationToken);
                 waitTime += CheckIntervalMs;
             }
 

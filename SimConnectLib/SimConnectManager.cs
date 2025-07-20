@@ -429,7 +429,7 @@ namespace CFIT.SimConnectLib
 
         public virtual bool CheckCameraReady()
         {
-            return CameraState != 0 && IsNotCamStateUnpaused(32) && CameraState != 35 && (CameraState < 11 || CameraState >= 29 || CameraState == 26);
+            return CameraState != 0 && IsNotCamStateUnpaused(32) && CameraState != 35 && (CameraState < 11 || CameraState >= 29 || CameraState == 26 || (CameraState == 16 && !IsPaused));
         }
 
         public virtual bool CheckCameraReadyLegacy()

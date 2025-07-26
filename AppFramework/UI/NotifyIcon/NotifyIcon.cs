@@ -20,8 +20,23 @@ namespace CFIT.AppFramework.UI.NotifyIcon
 
         protected virtual Icon CreateIcon()
         {
-            using var stream = AssemblyTools.GetStreamFromAssembly($"{Model.AssemblyName}.{(Model.SimApp.UpdateDetected ? Model.IconUpdate : Model.IconNormal)}");
+            return GetIcon($"{Model.AssemblyName}.{(Model.SimApp.UpdateDetected ? Model.IconUpdate : Model.IconNormal)}");
+        }
+
+        protected virtual Icon GetIcon(string assemblyPath)
+        {
+            using var stream = AssemblyTools.GetStreamFromAssembly(assemblyPath);
             return new Icon(stream);
+        }
+
+        public virtual void SetIconNormal()
+        {
+            TaskbarIcon.Icon = GetIcon($"{Model.AssemblyName}.{Model.IconNormal}");
+        }
+
+        public virtual void SetIconUpdate()
+        {
+            TaskbarIcon.Icon = GetIcon($"{Model.AssemblyName}.{Model.IconUpdate}");
         }
 
         protected virtual TaskbarIcon CreateTaskbarIcon()

@@ -56,13 +56,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="CFIT.AppLogger" Version="2025.193.15.2238" />
-    <PackageReference Include="CFIT.AppTools" Version="2025.193.15.2250" />
+    <PackageReference Include="CFIT.AppLogger" Version="2025.218.23.703" />
+    <PackageReference Include="CFIT.AppTools" Version="2025.218.23.720" />
     <PackageReference Include="System.IO.Compression" Version="4.3.0" />
     <PackageReference Include="System.IO.Compression.ZipFile" Version="4.3.0" />
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
     <PackageReference Include="System.Private.Uri" Version="4.3.2" />
-    <PackageReference Include="System.Text.Json" Version="9.0.7" />
+    <PackageReference Include="System.Text.Json" Version="9.0.8" />
   </ItemGroup>
 
     <ItemGroup>

@@ -19,6 +19,9 @@ namespace CFIT.Installer.UI.Behavior
         public virtual UIElement ContentRef { get; protected set; } = null;
         protected virtual DispatcherTimer RefreshAppTimer { get; set; }
         protected virtual TaskView TaskViewRef { get; set; } = null;
+        protected virtual StackPanel PanelHeader => Window.PanelHeader;
+        protected virtual StackPanel PanelFooter => Window.PanelFooter;
+        protected virtual StackPanel PanelButtons => Window.PanelButtons;
 
         public IPageBehavior()
         {

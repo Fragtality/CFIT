@@ -31,7 +31,7 @@
 
   <ItemGroup>
     <PackageReference Include="CFIT.AppLogger" Version="2025.218.23.703" />
-    <PackageReference Include="System.Text.Json" Version="9.0.8" />
+    <PackageReference Include="System.Text.Json" Version="9.0.9" />
   </ItemGroup>
 
   <ItemGroup>

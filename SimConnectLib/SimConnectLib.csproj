@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0-windows10.0.17763.0</TargetFramework>
+    <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>annotations</Nullable>
     <NuGetAuditMode>all</NuGetAuditMode>
@@ -31,10 +31,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CFIT.AppLogger" Version="2025.319.13.1841" />
-    <PackageReference Include="CFIT.AppTools" Version="2025.319.13.1949" />
-    <PackageReference Include="System.Collections.Concurrent" Version="4.3.0" />
-    <PackageReference Include="System.Private.Uri" Version="4.3.2" />
+    <PackageReference Include="CFIT.AppLogger" Version="2025.341.14.881" />
+    <PackageReference Include="CFIT.AppTools" Version="2025.341.14.889" />
   </ItemGroup>
 
   <ItemGroup>
@@ -48,7 +46,7 @@
     <None Update="Microsoft.FlightSimulator.SimConnect.dll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	  <Pack>False</Pack>
-	  <PackagePath>\lib\net8.0-windows10.0.17763</PackagePath>
+	  <PackagePath>\lib\net10.0-windows10.0.17763</PackagePath>
     </None>
     <None Update="readme.md">
       <Pack>True</Pack>
@@ -57,7 +55,7 @@
     <None Update="SimConnect.dll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	  <Pack>True</Pack>
-	  <PackagePath>\lib\net8.0-windows10.0.17763</PackagePath>
+	  <PackagePath>\lib\net10.0-windows10.0.17763</PackagePath>
     </None>
   </ItemGroup>
 

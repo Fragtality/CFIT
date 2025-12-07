@@ -7,7 +7,11 @@ namespace CFIT.AppTools
     {
         public static bool GroupsMatching(this Regex regex, string input, List<int> groupIndices, out List<string> groups)
         {
+#if NET10_0_OR_GREATER
+            groups = [];
+#else
             groups = new List<string>();
+#endif
             var matches = regex.Matches(input);
             if (matches?.Count == 0 || matches[0]?.Groups?.Count == 0 || groupIndices?.Count == 0 || string.IsNullOrWhiteSpace(input))
                 return false;
@@ -26,11 +30,19 @@ namespace CFIT.AppTools
         public static bool GroupMatches(this Regex regex, string input, int groupIndex, out string group)
         {
             var matches = regex.Matches(input);
+#if NET10_0_OR_GREATER
+            if (matches?.Count > 0 && matches[^1]?.Groups?.Count >= groupIndex)
+            {
+                group = matches[^1].Groups[groupIndex].Value;
+                return !string.IsNullOrWhiteSpace(group);
+            }
+#else
             if (matches?.Count > 0 && matches[matches.Count - 1]?.Groups?.Count >= groupIndex)
             {
                 group = matches[matches.Count - 1].Groups[groupIndex].Value;
                 return !string.IsNullOrWhiteSpace(group);
             }
+#endif
             else
             {
                 group = "";

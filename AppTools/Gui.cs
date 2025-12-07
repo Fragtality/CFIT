@@ -13,8 +13,12 @@ namespace CFIT.AppTools
         public static void SetArrowWidth(this ComboBox comboBox, int width)
         {
             var path = comboBox?.GetArrowPath();
+#if NET10_0_OR_GREATER
+            path?.Width = width;
+#else
             if (path != null)
                 path.Width = width;
+#endif
         }
 
         public static System.Windows.Shapes.Path GetArrowPath(this ComboBox comboBox)
@@ -29,9 +33,9 @@ namespace CFIT.AppTools
                 for (int i = 0; i < VisualTreeHelper.GetChildrenCount(obj); i++)
                 {
                     var child = VisualTreeHelper.GetChild(obj, i);
-                    if (child is T)
+                    if (child is T t)
                     {
-                        return (T)child;
+                        return t;
                     }
 
                     T childItem = FindVisualChild<T>(child);
@@ -53,6 +57,14 @@ namespace CFIT.AppTools
             {
                 if (assembly == null)
                     assembly = Assembly.GetExecutingAssembly();
+#if NET10_0_OR_GREATER
+                using var stream = assembly.GetManifestResourceStream($"{prefix}{icon}{extension}");
+                if (stream == null)
+                    return null;
+                byte[] buffer = new byte[stream.Length];
+                stream.ReadExactly(buffer, 0, buffer.Length);
+                return ToImage(buffer);
+#else
                 using (var stream = assembly.GetManifestResourceStream($"{prefix}{icon}{extension}"))
                 {
                     if (stream == null)
@@ -61,6 +73,7 @@ namespace CFIT.AppTools
                     stream.Read(buffer, 0, buffer.Length);
                     return ToImage(buffer);
                 }
+#endif
             }
             catch
             {
@@ -86,6 +99,15 @@ namespace CFIT.AppTools
 
         public static BitmapImage ToImage(byte[] array)
         {
+#if NET10_0_OR_GREATER
+            using var ms = new MemoryStream(array);
+            var image = new BitmapImage();
+            image.BeginInit();
+            image.CacheOption = BitmapCacheOption.OnLoad;
+            image.StreamSource = ms;
+            image.EndInit();
+            return image;
+#else
             using (var ms = new MemoryStream(array))
             {
                 var image = new BitmapImage();
@@ -95,6 +117,7 @@ namespace CFIT.AppTools
                 image.EndInit();
                 return image;
             }
+#endif
         }
 
         public static void SetButton(Button button, bool visible, bool hitTest = true, string caption = null, SolidColorBrush brush = null, BitmapImage icon = null, string tooltip = null)
@@ -112,9 +135,13 @@ namespace CFIT.AppTools
             if (tooltip != null)
                 button.ToolTip = tooltip;
 
-
+#if NET10_0_OR_GREATER
+            if (button.Content is not StackPanel panel || panel?.Children?.Count != 2)
+                return;
+#else
             if (!(button.Content is StackPanel panel) || panel?.Children?.Count != 2)
                 return;
+#endif
 
             if (caption != null && panel?.Children[0] is TextBlock captionLabel)
                 captionLabel.Text = caption;

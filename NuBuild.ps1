@@ -10,7 +10,7 @@ $targetPath = $args[1]
 $buildConfig = $args[2]
 $packageName = $args[3]
 
-if (-not ($targetPath -match "net8")) {
+if (-not ($targetPath -match "net10")) {
 	exit 0
 }
 $packageRepo = Join-Path $basePath "PackageRepo"

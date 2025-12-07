@@ -172,7 +172,11 @@ namespace CFIT.AppTools
         public static string GetActiveWindowTitle()
         {
             const int nChars = 256;
+#if NET10_0_OR_GREATER
+            StringBuilder Buff = new(nChars);
+#else
             StringBuilder Buff = new StringBuilder(nChars);
+#endif
             IntPtr handle = GetForegroundWindow();
 
             if (GetWindowText(handle, Buff, nChars) > 0)

@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-	<TargetFrameworks>net48-windows10.0.17763.0;net8.0-windows10.0.17763.0</TargetFrameworks>
+	<TargetFrameworks>net48-windows10.0.17763.0;net10.0-windows10.0.17763.0</TargetFrameworks>
     <NuGetAuditMode>direct</NuGetAuditMode>
     <PlatformTarget>x64</PlatformTarget>
     <Company>Fragtality</Company>
@@ -56,12 +56,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="CFIT.AppLogger" Version="2025.319.13.1841" />
-    <PackageReference Include="CFIT.AppTools" Version="2025.319.13.1949" />
+    <PackageReference Include="CFIT.AppLogger" Version="2025.341.14.881" />
+    <PackageReference Include="CFIT.AppTools" Version="2025.341.14.889" />
     <PackageReference Include="System.IO.Compression" Version="4.3.0" />
     <PackageReference Include="System.IO.Compression.ZipFile" Version="4.3.0" />
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
-    <PackageReference Include="System.Private.Uri" Version="4.3.2" />
     <PackageReference Include="System.Text.Json" Version="10.0.0" />
   </ItemGroup>
 

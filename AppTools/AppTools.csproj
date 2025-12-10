@@ -30,8 +30,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CFIT.AppLogger" Version="2025.341.14.881" />
-    <PackageReference Include="System.Text.Json" Version="10.0.0" />
+    <PackageReference Include="CFIT.AppLogger" Version="2025.344.18.3079" />
+    <PackageReference Include="System.Text.Json" Version="10.0.1" />
   </ItemGroup>
 
   <ItemGroup>

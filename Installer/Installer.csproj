@@ -56,8 +56,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="CFIT.AppLogger" Version="2025.344.18.3079" />
-    <PackageReference Include="CFIT.AppTools" Version="2025.344.18.3088" />
+    <PackageReference Include="CFIT.AppLogger" Version="2025.350.17.2666" />
+    <PackageReference Include="CFIT.AppTools" Version="2025.350.17.2675" />
     <PackageReference Include="System.IO.Compression" Version="4.3.0" />
     <PackageReference Include="System.IO.Compression.ZipFile" Version="4.3.0" />
     <PackageReference Include="System.Net.Http" Version="4.3.4" />

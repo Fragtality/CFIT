@@ -32,7 +32,7 @@
 
   <ItemGroup>
     <PackageReference Include="CFIT.AppLogger" Version="2025.350.17.2666" />
-    <PackageReference Include="CFIT.AppTools" Version="2025.350.17.2675" />
+    <PackageReference Include="CFIT.AppTools" Version="2026.14.20.2894" />
   </ItemGroup>
 
   <ItemGroup>

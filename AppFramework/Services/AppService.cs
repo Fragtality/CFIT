@@ -30,14 +30,20 @@ namespace CFIT.AppFramework.Services
             CreateServiceControllers();
         }
 
+        /// <summary>
+        /// Create <see cref="ServiceController{TApp, TService, TConfig, TDefinition}"/> that will automatically be started before the MainLoop (and stopped after)
+        /// </summary>
         protected abstract void CreateServiceControllers();
 
-        protected override Task InitReceivers()
+        protected override Task DoInit()
         {
-            base.InitReceivers();
-            ReceiverStore.Add<MsgSimStarted>();
-            ReceiverStore.Add<MsgSimStopped>();
-            ReceiverStore.Get<MsgSimStopped>().OnMessage += (_) => SimStoppedReceived = true;
+            MessageService.Subscribe<MsgSimStopped>(OnSimStopped);
+            return Task.CompletedTask;
+        }
+
+        protected virtual Task OnSimStopped()
+        {
+            SimStoppedReceived = true;
             return Task.CompletedTask;
         }
 
@@ -61,59 +67,75 @@ namespace CFIT.AppFramework.Services
             if (Definition.WaitForSim)
             {
                 Logger.Information($"Waiting for Simulator ...");
-                await ReceiverStore.Get<MsgSimStarted>().ReceiveAsync();
+                await MessageService.WaitReceived<MsgSimStarted>(Token, 1000);
             }
 
-            Logger.Debug($"Starting MainLoop ...");
-            while (IsExecutionAllowed && RunCondition())
-                await MainLoop();
-            Logger.Debug($"MainLoop ended. (ExecutionAllowed {IsExecutionAllowed} RunCondition {RunCondition()})");
-
-            await StopServiceControllers();
-
-            if (!RunCondition())
+            if (IsExecutionAllowed)
+                Logger.Debug($"Starting MainLoop ...");
+            try
             {
-                IsResettable = false;
-                if (!Token.IsCancellationRequested)
+                while (IsExecutionAllowed && RunCondition())
+                    await MainLoop();
+                Logger.Debug($"MainLoop ended. (ExecutionAllowed {IsExecutionAllowed} | RunCondition {RunCondition()})");
+            }
+            catch (Exception ex)
+            {
+                if (ex is not TaskCanceledException)
                 {
-                    Logger.Debug($"RunCondition not met - request Shutdown");
-                    App.RequestShutdown();
+                    Logger.LogException(ex);
+                    Logger.Error("MainLoop crashed!");
+                    App.TokenSource.Cancel();
                 }
             }
+
+            if (!RunCondition() && !Token.IsCancellationRequested)
+            {
+                Logger.Debug($"RunCondition not met - request Shutdown");
+                App.RequestShutdown();
+            }
+
+            await StopServiceControllers();
         }
 
         protected abstract Task MainLoop();
 
         protected virtual Task StartServiceControllers()
         {
-            CallOnControllers((controller) => controller.Start());
-            return Task.CompletedTask;
+            return CallOnControllers((controller) => controller.Start());
         }
 
-        protected virtual async Task StopServiceControllers()
+        protected virtual Task StopServiceControllers()
         {
-            await CallOnControllers(async (controller) => await controller.Stop());
+            return CallOnControllers((controller) => controller.Stop());
         }
 
-        public override async Task Stop()
-        {
-            await StopServiceControllers();
-            await base.Stop();
-        }
-
-        protected virtual Task CallOnControllers(Action<ServiceController<TApp, TService, TConfig, TDefinition>> action)
+        protected virtual void CallOnControllers(Action<ServiceController<TApp, TService, TConfig, TDefinition>> action)
         {
             foreach (var controller in ServiceControllers.Keys)
                 action.Invoke(controller);
+        }
+
+        protected virtual async Task CallOnControllers(Func<ServiceController<TApp, TService, TConfig, TDefinition>, Task> action)
+        {
+            foreach (var controller in ServiceControllers.Keys)
+                await action.Invoke(controller);
+        }
+
+        protected override Task DoCleanup()
+        {
+            MessageService.Unsubscribe<MsgSimStopped>(OnSimStopped);
             return Task.CompletedTask;
         }
 
-        protected override Task FreeResources()
+        protected override void Dispose(bool disposing)
         {
-            base.FreeResources();
-            CallOnControllers((controller) => controller.Dispose());
-            ReceiverStore.Remove<MsgSimStarted>();
-            return Task.CompletedTask;
+            if (!isDisposed)
+            {
+                if (disposing)
+                    CallOnControllers((controller) => controller.Dispose());
+            }
+
+            base.Dispose(disposing);
         }
     }
 }

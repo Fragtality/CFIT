@@ -23,8 +23,10 @@ namespace CFIT.Installer.LibFunc
         public static string DeckRegPathVersion { get { return @"HKEY_CURRENT_USER\SOFTWARE\Elgato Systems GmbH\StreamDeck"; } }
         public static string DeckRegValueVersion { get { return "last_started_streamdeck_version"; } }
         public static string DeckRegValueFolder { get { return "Folder"; } }
-        public static string DeckRegPathInstall { get { return @"HKEY_CURRENT_USER\SOFTWARE\Elgato Systems GmbH\StreamDeck (Setup)"; } }
-        public static string DeckRegValueInstall { get { return "installDir"; } }
+        public static string DeckRegPathInstall { get { return @"HKEY_LOCAL_MACHINE\SOFTWARE\Elgato\StreamDeck\Setup"; } }
+        public static string DeckRegValueInstall { get { return "InstallLocation"; } }
+        public static string DeckRegPathInstallFallback { get { return @"HKEY_CURRENT_USER\SOFTWARE\Elgato Systems GmbH\StreamDeck (Setup)"; } }
+        public static string DeckRegValueInstallFallback { get { return "installDir"; } }
 
         public FuncStreamDeck()
         {
@@ -59,14 +61,14 @@ namespace CFIT.Installer.LibFunc
 
         protected virtual void GetStreamDeckBinaryPath()
         {
-            Path = Sys.GetRegistryValue<string>(DeckRegPathVersion, DeckRegValueFolder, null);
+            Path = Sys.GetRegistryValue<string>(DeckRegPathInstall, DeckRegValueInstall, null);
             if (!string.IsNullOrWhiteSpace(Path))
             {
-                BinaryPath = $@"{Path}{DeckBinaryName}\{DeckBinaryExe}";
+                BinaryPath = $@"{Path}{DeckBinaryExe}";
                 return;
             }
 
-            Path = Sys.GetRegistryValue<string>(DeckRegPathInstall, DeckRegValueInstall, null);
+            Path = Sys.GetRegistryValue<string>(DeckRegPathInstallFallback, DeckRegValueInstallFallback, null);
             if (!string.IsNullOrWhiteSpace(Path))
             {
                 BinaryPath = $@"{Path}{DeckBinaryExe}";
@@ -76,6 +78,8 @@ namespace CFIT.Installer.LibFunc
             Logger.Warning("Could not get StreamDeck Folder from Registry! Assuming Default");
             Path = $@"{DeckDefaultPath}{DeckBinaryName}\";
             BinaryPath = $@"{Path}{DeckBinaryExe}";
+            Logger.Debug($"Using Path: {Path}");
+            Logger.Debug($"Using BinaryPath: {BinaryPath}");
         }
 
         public virtual bool CompareVersion(string version)

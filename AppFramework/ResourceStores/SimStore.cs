@@ -16,7 +16,7 @@ namespace CFIT.AppFramework.ResourceStores
         protected virtual ConcurrentDictionary<string, ISimResourceSubscription> SimResources { get; } = [];
         protected virtual ConcurrentDictionary<string, int> RefCount { get; } = [];
         protected virtual int Count { get { return SimResources.Count; } }
-        
+
         public virtual ISimResourceSubscription this[string name]
         {
             get
@@ -65,7 +65,7 @@ namespace CFIT.AppFramework.ResourceStores
         public virtual ISimResourceSubscription Remove(string name)
         {
             if (SimResources.TryGetValue(name, out ISimResourceSubscription subscription))
-            {                
+            {
                 if (RefCount.ContainsKey(name))
                 {
                     if (RefCount[name] <= 1)
@@ -105,7 +105,7 @@ namespace CFIT.AppFramework.ResourceStores
             return SimResources.TryGetValue(name, out subscription);
         }
 
-        public virtual bool RegisterEventHandler(string name, Action<ISimResourceSubscription, object> eventHandler)
+        public virtual bool RegisterEventHandler(string name, Func<ISimResourceSubscription, object, Task> eventHandler)
         {
             if (TryGet(name, out ISimResourceSubscription subscription))
             {
@@ -116,7 +116,7 @@ namespace CFIT.AppFramework.ResourceStores
             return false;
         }
 
-        public virtual bool UnregisterEventHandler(string name, Action<ISimResourceSubscription, object> eventHandler)
+        public virtual bool UnregisterEventHandler(string name, Func<ISimResourceSubscription, object, Task> eventHandler)
         {
             if (TryGet(name, out ISimResourceSubscription subscription))
             {

@@ -31,8 +31,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CFIT.AppLogger" Version="2026.88.13.1347" />
-    <PackageReference Include="CFIT.AppTools" Version="2026.88.13.1356" />
+    <PackageReference Include="CFIT.AppLogger" Version="2026.111.20.1067" />
+    <PackageReference Include="CFIT.AppTools" Version="2026.111.20.1078" />
   </ItemGroup>
 
   <ItemGroup>

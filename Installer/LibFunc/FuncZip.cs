@@ -64,7 +64,7 @@ namespace CFIT.Installer.LibFunc
         {
             try
             {
-                using (Stream stream = new FileStream(zipFile, FileMode.Open))
+                using (FileStream stream = new FileStream(zipFile, FileMode.Open))
                 {
                     ExtractZipStream(extractDir, stream, unblockDir, overwrite, exclusions);
                     stream.Close();

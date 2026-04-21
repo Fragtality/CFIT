@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 namespace CFIT.AppFramework.ResourceStores
 {
     public class SimResourceWaiter
-    {   
+    {
         public virtual ISimResourceSubscription Subscription { get; }
         protected virtual CancellationToken Token { get; }
         protected virtual int CheckIntervalMs { get; }
@@ -22,18 +22,17 @@ namespace CFIT.AppFramework.ResourceStores
             subscription.OnReceived += Receive;
         }
 
-        protected virtual void Receive(ISimResourceSubscription subscription, object value)
+        protected virtual Task Receive(ISimResourceSubscription subscription, object value)
         {
             IsReceived = true;
             ReceivedValue = subscription.GetNumber();
+            return Task.CompletedTask;
         }
 
         public async Task<double> WaitValueAsync(double value)
         {
             while (!IsReceived && ReceivedValue != value && !IsCanceled && !Token.IsCancellationRequested)
-            {
                 await Task.Delay(CheckIntervalMs, Token);
-            }
 
             return ReceivedValue;
         }

@@ -29,21 +29,18 @@ namespace CFIT.AppFramework.Services
             Manager.WindowHook.WindowHide = (hook) => { hook.HelperWindow.Hide(enableEfficiencyMode: false); };
         }
 
-        protected override async Task DoRun()
+        protected override Task DoRun()
         {
-            Controller.Run();
-            while (Controller.IsRunning && !Token.IsCancellationRequested)
-                await Task.Delay(Config.CheckInterval, Token);
+            return Controller.Run();
         }
 
-        protected override Task FreeResources()
+        protected override Task DoCleanup()
         {
-            base.FreeResources();
             Manager.Dispose();
             return Task.CompletedTask;
         }
 
-        protected override Task InitReceivers()
+        protected override Task DoInit()
         {
             Controller.OnSimStarted += SendMessage<MsgSimStarted>;
             Controller.OnSimStopped += SendMessage<MsgSimStopped>;
@@ -52,17 +49,16 @@ namespace CFIT.AppFramework.Services
             return Task.CompletedTask;
         }
 
-        protected virtual void SendMessage<TMessage>(SimConnectManager sender) where TMessage : MessageSimulator
+        protected virtual void SendMessage<TMessage>(SimConnectManager manager) where TMessage : MessageSimulator
         {
             Logger.Debug($"Controller Event => Send '{typeof(TMessage).Name}'");
-            MessageService.Send(MessageSimulator.Create<TMessage>(sender));
+            MessageService.Send<TMessage>();
         }
 
         public override Task Stop()
         {
-            base.Stop();
             Controller.Cancel();
-            return Task.CompletedTask;
+            return base.Stop();
         }
     }
 }

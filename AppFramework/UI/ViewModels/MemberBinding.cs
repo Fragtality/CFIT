@@ -235,7 +235,7 @@ namespace CFIT.AppFramework.UI.ViewModels
             if (!NoUpdate)
                 Binding.Mode = BindingMode.TwoWay;
             BindingProperty = elementProperty ?? element.GetDefaultDependency();
-            
+
             if (validator != null)
                 Validator = validator;
             if (Validator != null)

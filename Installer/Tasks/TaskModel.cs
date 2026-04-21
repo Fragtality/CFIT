@@ -61,7 +61,7 @@ namespace CFIT.Installer.Tasks
         }
 
         public virtual string Message
-        { 
+        {
             get { return ListMessages?.LastOrDefault()?.Text; }
             set { ListMessages.Add(new TaskMessage(value)); Logger.Information(value); }
         }

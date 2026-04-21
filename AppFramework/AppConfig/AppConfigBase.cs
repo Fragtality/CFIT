@@ -58,7 +58,9 @@ namespace CFIT.AppFramework.AppConfig
 
         //App
         //...
-
+        public virtual bool AppWindowRestorePosition { get; set; } = true;
+        public virtual double WindowPosTop { get; set; } = 0;
+        public virtual double WindowPosLeft { get; set; } = 0;
 
         public static TConfig LoadConfiguration<TConfig>() where TConfig : AppConfigBase<TDefinition>
         {

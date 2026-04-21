@@ -66,7 +66,7 @@ namespace CFIT.Installer.Tasks
 
                 if (StateOnLinkClicked != Model.State)
                     Model.State = StateOnLinkClicked;
-                
+
                 Model.LinkResponse = LinkResponse;
                 WasNavigated = true;
                 e.Handled = true;

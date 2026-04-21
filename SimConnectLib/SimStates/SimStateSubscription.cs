@@ -1,20 +1,21 @@
-﻿using CFIT.SimConnectLib.SimResources;
+﻿using CFIT.AppTools;
+using CFIT.SimConnectLib.SimResources;
 using System;
-using System.Windows.Threading;
+using System.Threading.Tasks;
 
 namespace CFIT.SimConnectLib.SimStates
 {
     public partial class SimStateSubscription : SimResourceSubscription<SimStateManager, SimState, SimStateSubscription>
     {
         protected virtual bool FirstUpdate { get; set; } = true;
-     
-        protected virtual DispatcherTimer PollTimer { get; set; }
+
+        protected virtual DispatcherTimerAsync PollTimer { get; set; }
         public virtual int PollInterval { get; protected set; }
         public virtual bool PollOnly { get; protected set; }
 
         public SimStateSubscription(SimState state, int pollInterval, bool pollOnly) : base(state)
         {
-            PollTimer = new DispatcherTimer();
+            PollTimer = new DispatcherTimerAsync();
             PollTimer.Tick += PollTick;
             SetPollInterval(pollInterval);
             SetPollOnly(pollOnly);
@@ -45,9 +46,9 @@ namespace CFIT.SimConnectLib.SimStates
             return false;
         }
 
-        protected virtual async void PollTick(object? sender, EventArgs e)
+        protected virtual Task PollTick()
         {
-            await Resource.Request();
+            return Resource.Request();
         }
 
         public virtual void SetPollInterval(int pollInterval)

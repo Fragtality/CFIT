@@ -44,7 +44,7 @@ namespace CFIT.Installer.UI.Behavior
 
             Run result;
             if (BaseWorker?.IsSuccess == true)
-            { 
+            {
                 result = new Run()
                 {
                     Text = "successful!",
@@ -94,7 +94,7 @@ namespace CFIT.Installer.UI.Behavior
                     FontSize = 12,
                     TextWrapping = TextWrapping.Wrap,
                     Width = 448,
-                    Margin = new Thickness(0,32,0,0),
+                    Margin = new Thickness(0, 32, 0, 0),
                 };
                 panel.Children.Add(block);
             }
@@ -121,7 +121,7 @@ namespace CFIT.Installer.UI.Behavior
 
         protected override void SetFooter()
         {
-            
+
         }
 
         protected override void SetButtons()

@@ -76,50 +76,25 @@ namespace CFIT.SimConnectLib.SimVars
             };
         }
 
-        public virtual async Task RegisterDefineStruct(MappedID id, SimConnectManager manager)
+        public virtual Task RegisterDefineStruct(MappedID id, SimConnectManager manager)
         {
-            switch (CastType)
+            return CastType switch
             {
-                case SimCastType.DOUBLE:
-                    await manager.Call(sc => sc.RegisterDataDefineStruct<double>(id));
-                    break;
-                case SimCastType.FLOAT:
-                    await manager.Call(sc => sc.RegisterDataDefineStruct<float>(id));
-                    break;
-                case SimCastType.INT:
-                    await manager.Call(sc => sc.RegisterDataDefineStruct<int>(id));
-                    break;
-                case SimCastType.LONG:
-                    await manager.Call(sc => sc.RegisterDataDefineStruct<long>(id));
-                    break;
-                case SimCastType.BOOL:
-                    await manager.Call(sc => sc.RegisterDataDefineStruct<bool>(id));
-                    break;
-                case SimCastType.STRING:
-                    await manager.Call(sc => sc.RegisterDataDefineStruct<StructString>(id));
-                    break;
-                case SimCastType.STRUCT_XYZ:
-                    await manager.Call(sc => sc.RegisterDataDefineStruct<StructXYZ>(id));
-                    break;
-                case SimCastType.STRUCT_PBH:
-                    await manager.Call(sc => sc.RegisterDataDefineStruct<StructPBH>(id));
-                    break;
-                case SimCastType.STRUCT_LLA:
-                    await manager.Call(sc => sc.RegisterDataDefineStruct<StructLatLonAlt>(id));
-                    break;
-                case SimCastType.STRUCT_LLAPBH:
-                    await manager.Call(sc => sc.RegisterDataDefineStruct<StructLatLonAltPBH>(id));
-                    break;
-                case SimCastType.STRUCT_PID:
-                    await manager.Call(sc => sc.RegisterDataDefineStruct<StructPID>(id));
-                    break;
-                case SimCastType.STRUCT_FUEL:
-                    await manager.Call(sc => sc.RegisterDataDefineStruct<StructFuelLevels>(id));
-                    break;
-                default:
-                    await manager.Call(sc => sc.RegisterDataDefineStruct<double>(id));
-                    break;
-            }
+                SimCastType.DOUBLE => manager.Call(sc => sc.RegisterDataDefineStruct<double>(id)),
+                SimCastType.FLOAT => manager.Call(sc => sc.RegisterDataDefineStruct<float>(id)),
+                SimCastType.INT => manager.Call(sc => sc.RegisterDataDefineStruct<int>(id)),
+                SimCastType.LONG => manager.Call(sc => sc.RegisterDataDefineStruct<long>(id)),
+                SimCastType.BOOL => manager.Call(sc => sc.RegisterDataDefineStruct<bool>(id)),
+                SimCastType.STRING => manager.Call(sc => sc.RegisterDataDefineStruct<StructString>(id)),
+                SimCastType.STRUCT_XYZ => manager.Call(sc => sc.RegisterDataDefineStruct<StructXYZ>(id)),
+                SimCastType.STRUCT_PBH => manager.Call(sc => sc.RegisterDataDefineStruct<StructPBH>(id)),
+                SimCastType.STRUCT_LLA => manager.Call(sc => sc.RegisterDataDefineStruct<StructLatLonAlt>(id)),
+                SimCastType.STRUCT_LLAPBH => manager.Call(sc => sc.RegisterDataDefineStruct<StructLatLonAltPBH>(id)),
+                SimCastType.STRUCT_PID => manager.Call(sc => sc.RegisterDataDefineStruct<StructPID>(id)),
+                SimCastType.STRUCT_FUEL => manager.Call(sc => sc.RegisterDataDefineStruct<StructFuelLevels>(id)),
+                SimCastType.UNKNOWN => Task.CompletedTask,
+                _ => manager.Call(sc => sc.RegisterDataDefineStruct<double>(id)),
+            };
         }
 
         public override string ToString()

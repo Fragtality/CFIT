@@ -52,16 +52,15 @@ namespace CFIT.Installer.LibWorker
                 Fails++;
         }
 
-        protected override async Task<bool> DoRun()
+        protected override Task<bool> DoRun()
         {
             bool result = false;
-            await Task.Delay(0);
 
             if (AutoStartTargets.HasFlag(SimAutoStart.NOCHANGE))
             {
                 Model.SetSuccess($"No Changes to Auto-Start!");
                 Model.DisplayInSummary = false;
-                return true;
+                return Task.FromResult(true);
             }
             else if (AutoStartTargets.HasFlag(SimAutoStart.NOAUTO))
             {
@@ -74,7 +73,7 @@ namespace CFIT.Installer.LibWorker
                     Model.SetError("Auto-Start Removal failed!");
                 else
                     Model.SetSuccess($"Auto-Start removed for {Config.ProductName}!");
-                return result;
+                return Task.FromResult(result);
             }
             else
             {
@@ -101,10 +100,10 @@ namespace CFIT.Installer.LibWorker
                 if (result)
                 {
                     Model.SetSuccess(AutoStartSuccessMsg);
-                    return true;
+                    return Task.FromResult(true);
                 }
                 else
-                    return false;
+                    return Task.FromResult(false);
             }
 
         }

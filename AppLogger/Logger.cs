@@ -137,12 +137,9 @@ namespace CFIT.AppLogger
             if (level > HighestLevel)
                 HighestLevel = level;
 
-            if (level < MinimumLevel)
-                return;
-
             string context = GetContext(classFile, classMethod);
             message = message.Replace("\n", "").Replace("\r", "");
-            
+
             switch (level)
             {
                 case LogLevel.Critical:
@@ -173,32 +170,38 @@ namespace CFIT.AppLogger
 
         public static void Log(LogLevel level, string message, [CallerFilePath] string classFile = "", [CallerMemberName] string classMethod = "")
         {
-            WriteLog(level, message, classFile, classMethod);
+            if (level >= MinimumLevel)
+                WriteLog(level, message, classFile, classMethod);
         }
 
         public static void Error(string message, [CallerFilePath] string classFile = "", [CallerMemberName] string classMethod = "")
         {
-            WriteLog(LogLevel.Error, message, classFile, classMethod);
+            if (LogLevel.Error >= MinimumLevel)
+                WriteLog(LogLevel.Error, message, classFile, classMethod);
         }
 
         public static void Warning(string message, [CallerFilePath] string classFile = "", [CallerMemberName] string classMethod = "")
         {
-            WriteLog(LogLevel.Warning, message, classFile, classMethod);
+            if (LogLevel.Warning >= MinimumLevel)
+                WriteLog(LogLevel.Warning, message, classFile, classMethod);
         }
 
         public static void Information(string message, [CallerFilePath] string classFile = "", [CallerMemberName] string classMethod = "")
         {
-            WriteLog(LogLevel.Information, message, classFile, classMethod);
+            if (LogLevel.Information >= MinimumLevel)
+                WriteLog(LogLevel.Information, message, classFile, classMethod);
         }
 
         public static void Debug(string message, [CallerFilePath] string classFile = "", [CallerMemberName] string classMethod = "")
         {
-            WriteLog(LogLevel.Debug, message, classFile, classMethod);
+            if (LogLevel.Debug >= MinimumLevel)
+                WriteLog(LogLevel.Debug, message, classFile, classMethod);
         }
 
         public static void Verbose(string message, [CallerFilePath] string classFile = "", [CallerMemberName] string classMethod = "")
         {
-            WriteLog(LogLevel.Verbose, message, classFile, classMethod);
+            if (LogLevel.Verbose >= MinimumLevel)
+                WriteLog(LogLevel.Verbose, message, classFile, classMethod);
         }
 
         private static void WriteLogException(Exception ex, string message = "", string classFile = "", string classMethod = "")

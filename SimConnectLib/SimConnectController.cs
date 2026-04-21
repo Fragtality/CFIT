@@ -15,7 +15,7 @@ namespace CFIT.SimConnectLib
         public virtual int CheckInterval { get; } = config.CheckInterval;
         public virtual CancellationToken Token { get; protected set; } = token;
         public virtual bool WaitForSim { get; } = waitForSim;
-        public virtual bool IsSimRunning => IsMsfs2020Running || IsMsfs2024Running;
+        public virtual bool IsSimRunning { get; protected set; } = false;
         public virtual bool IsMsfs2020Running => Sys.GetProcessRunning(Config.BinaryMsfs2020);
         public virtual bool IsMsfs2024Running => Sys.GetProcessRunning(Config.BinaryMsfs2024);
         public virtual bool IsSessionReady { get; protected set; } = false;
@@ -24,6 +24,7 @@ namespace CFIT.SimConnectLib
         public virtual bool FirstRun { get; protected set; } = true;
         public virtual bool FirstConnect { get; protected set; } = true;
         protected virtual DateTime LastConnectionAttempt { get; set; } = DateTime.Now;
+        protected virtual DateTime NextBinaryCheck { get; set; } = DateTime.MinValue;
 
         public event Action<SimConnectManager> OnSimStarted;
         public event Action<SimConnectManager> OnSimStopped;
@@ -35,7 +36,18 @@ namespace CFIT.SimConnectLib
             return SimConnect.AddModule(typeof(MobiModule), config);
         }
 
-        public virtual async void Run()
+        public virtual bool CheckSimBinary()
+        {
+            if (NextBinaryCheck <= DateTime.Now)
+            {
+                IsSimRunning = IsMsfs2020Running || IsMsfs2024Running;
+                NextBinaryCheck = DateTime.Now + TimeSpan.FromMilliseconds(Config.StaleTimeout);
+            }
+
+            return IsSimRunning;
+        }
+
+        public virtual async Task Run()
         {
             IsRunning = true;
             IsCanceled = false;
@@ -45,14 +57,14 @@ namespace CFIT.SimConnectLib
                 if (WaitForSim)
                     await WaitSimLoop();
 
-                if (IsSimRunning)
+                if (CheckSimBinary())
                 {
                     Logger.Debug($"Fire OnSimStarted");
-                    _ = TaskTools.RunLogged(() => { OnSimStarted?.Invoke(SimConnect); }, Token);
+                    _ = TaskTools.RunPool(() => OnSimStarted?.Invoke(SimConnect), Token);
                 }
 
                 LastConnectionAttempt = DateTime.Now;
-                while (IsSimRunning && !Token.IsCancellationRequested && !SimConnect.QuitReceived && !IsCanceled)
+                while (CheckSimBinary() && !Token.IsCancellationRequested && !SimConnect.QuitReceived && !IsCanceled)
                     await RunMainLoop();
             }
             catch (Exception ex)
@@ -61,29 +73,29 @@ namespace CFIT.SimConnectLib
                     Logger.LogException(ex);
             }
 
-            Reset();
+            await Reset();
             Logger.Information($"SimConnectController Task ended (simRunning: {IsSimRunning} | quitReceived: {SimConnect?.QuitReceived} | cancelled: {Token.IsCancellationRequested})");
 
             if (!IsCanceled)
             {
                 Logger.Debug($"Fire OnSimStopped");
-                _ = TaskTools.RunLogged(() => { OnSimStopped?.Invoke(SimConnect); }, Token);
+                _ = TaskTools.RunPool(() => OnSimStopped?.Invoke(SimConnect), Token);
             }
         }
 
-        protected virtual void Reset()
+        protected virtual async Task Reset()
         {
             if (!SimConnect.QuitReceived && SimConnect.IsSimConnectInitialized)
-                SimConnect.Disconnect();
+                await SimConnect.Disconnect();
             IsRunning = false;
             IsSessionReady = false;
             FirstRun = true;
-            FirstConnect = true;            
+            FirstConnect = true;
         }
 
         protected virtual async Task WaitSimLoop()
         {
-            while (!IsSimRunning && !IsCanceled && !Token.IsCancellationRequested)
+            while (!CheckSimBinary() && !IsCanceled && !Token.IsCancellationRequested)
             {
                 Logger.Information($"Sim not running - Retry in {Config.RetryDelay / 1000}s");
                 await Task.Delay(Config.RetryDelay, Token);
@@ -101,14 +113,14 @@ namespace CFIT.SimConnectLib
                     {
                         LastConnectionAttempt = DateTime.Now;
                         Logger.Warning($"Stale Connection detected - force reconnect");
-                        SimConnect.Disconnect();
+                        await SimConnect.Disconnect();
                         return;
                     }
                     else if (FirstConnect && diff >= TimeSpan.FromMilliseconds(Config.StaleTimeout * 6))
                     {
                         LastConnectionAttempt = DateTime.Now;
                         Logger.Warning($"Stale initial Connection detected - force reconnect");
-                        SimConnect.Disconnect();
+                        await SimConnect.Disconnect();
                         return;
                     }
                 }
@@ -136,7 +148,7 @@ namespace CFIT.SimConnectLib
             if (!SimConnect.IsReceiveRunning && SimConnect.IsSimConnected)
             {
                 Logger.Warning($"Receive not running while Connection established! Reconnecting in {(Config.RetryDelay / 2) / 1000}s");
-                SimConnect.Disconnect();
+                await SimConnect.Disconnect();
                 IsSessionReady = false;
                 FirstRun = true;
                 if (!IsCanceled)
@@ -148,18 +160,18 @@ namespace CFIT.SimConnectLib
             {
                 Logger.Debug($"SESSION: ready (Camera {SimConnect.CameraState})");
                 IsSessionReady = true;
-                _ = TaskTools.RunLogged(() => { OnSessionReady?.Invoke(SimConnect); }, Token);
+                _ = TaskTools.RunPool(() => OnSessionReady?.Invoke(SimConnect), Token);
             }
 
             if (IsSessionReady && SimConnect.IsSessionStopped)
             {
                 Logger.Debug($"SESSION: ended (Camera {SimConnect.CameraState})");
                 IsSessionReady = false;
-                _ = TaskTools.RunLogged(() => { OnSessionEnded?.Invoke(SimConnect); }, Token);
+                _ = TaskTools.RunPool(() => OnSessionEnded?.Invoke(SimConnect), Token);
             }
 
             await SimConnect.CheckState();
-            SimConnect.CheckResources();
+            await SimConnect.CheckResources();
 
             if (!IsCanceled)
                 await Task.Delay(CheckInterval, Token);

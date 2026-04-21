@@ -55,7 +55,7 @@ namespace CFIT.AppFramework.UI.Validations
         {
             return BaseRule.Validate(() =>
             {
-                return value is string text && (Conversion.IsNumber(text) || !string.IsNullOrWhiteSpace(text)) ;
+                return value is string text && (Conversion.IsNumber(text) || !string.IsNullOrWhiteSpace(text));
             }
             , "Not a valid String or Number!");
         }

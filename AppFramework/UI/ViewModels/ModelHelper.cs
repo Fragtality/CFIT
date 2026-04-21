@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -14,7 +15,7 @@ namespace CFIT.AppFramework.UI.ViewModels
             {
                 Source = model
             };
-            
+
             if (converter != null)
                 binding.Converter = converter;
             if (rule != null)
@@ -22,6 +23,18 @@ namespace CFIT.AppFramework.UI.ViewModels
 
             element.SetBinding(elementProperty, binding);
             return model;
+        }
+
+        public static void RunOnDispatcher(Action action)
+        {
+            try
+            {
+                Application.Current.Dispatcher.BeginInvoke(() =>
+                {
+                    action?.Invoke();
+                });
+            }
+            catch { }
         }
     }
 }

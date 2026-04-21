@@ -26,14 +26,16 @@ namespace CFIT.SimConnectLib.InputEvents
                 Logger.Verbose($"InputEvent '{Name}' ({Type}) registered on SimConnect");
         }
 
-        public override async Task Request()
+        public override Task Request()
         {
             if (Manager.IsReceiveRunning)
             {
                 if (Manager.Manager.Config.VerboseLogging)
                     Logger.Verbose($"Requesting InputEvent '{Name}'");
-                await Call(sc => sc.GetInputEvent(Id, Hash));
+                return Call(sc => sc.GetInputEvent(Id, Hash));
             }
+            else
+                return Task.CompletedTask;
         }
 
         public override async Task Unregister(bool disconnect)

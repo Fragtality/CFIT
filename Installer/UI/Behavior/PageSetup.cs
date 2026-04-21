@@ -22,7 +22,7 @@ namespace CFIT.Installer.UI.Behavior
             RefreshTimer = new DispatcherTimer()
             {
                 Interval = TimeSpan.FromMilliseconds(100)
-               
+
             };
             RefreshTimer.Tick += RefreshState;
         }
@@ -30,7 +30,7 @@ namespace CFIT.Installer.UI.Behavior
         public override void Activate(InstallerWindow window)
         {
             base.Activate(window);
-            Task.Run(BaseWorker.Run);
+            BaseWorker.Run();
             RefreshTimer?.Start();
             TaskPanel.Activate();
         }
@@ -109,7 +109,7 @@ namespace CFIT.Installer.UI.Behavior
             };
         }
 
-        protected virtual void RefreshState(object sender, EventArgs e)
+        protected virtual async void RefreshState(object sender, EventArgs e)
         {
             if (!WorkerCompleted)
             {
@@ -122,11 +122,11 @@ namespace CFIT.Installer.UI.Behavior
             if (BaseWorker?.IsCompleted == true && !WorkerCompleted)
             {
                 WorkerCompleted = true;
-                WorkerHasCompleted();
+                await WorkerHasCompleted();
             }
         }
 
-        protected virtual async void WorkerHasCompleted()
+        protected virtual async Task WorkerHasCompleted()
         {
             if (BaseBehavior?.ShowSummaryPage == true)
             {

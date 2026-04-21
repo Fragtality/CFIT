@@ -3,6 +3,7 @@ using CFIT.AppFramework.MessageService;
 using CFIT.AppFramework.ResourceStores;
 using CFIT.AppFramework.Services;
 using CFIT.AppFramework.UI.NotifyIcon;
+using CFIT.AppFramework.UI.ViewModels;
 using CFIT.AppLogger;
 using CFIT.AppTools;
 using H.NotifyIcon;
@@ -10,7 +11,6 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading;
@@ -29,9 +29,9 @@ namespace CFIT.AppFramework
         public bool IsAppShutDown { get; }
         public Window AppWindow { get; }
         public AppMessageService MessageService { get; }
-        public bool UpdateDetected { get; }
-        public bool UpdateIsDev { get; }
-        public string UpdateVersion { get; }
+
+        public event Action<Version, string> NewVersion;
+        public event Action<Version, string> NewBuild;
 
         public void RequestShutdown(int? exitCode = null);
     }
@@ -44,24 +44,23 @@ namespace CFIT.AppFramework
     {
         public static TApp Instance { get; private set; }
         public virtual TConfig Config { get; protected set; }
-        public virtual TDefinition Definition { get { return AppConfigBase<TDefinition>.Definition; } }
-        public virtual ProductDefinitionBase DefinitionBase { get { return Definition; } }
+        public virtual TDefinition Definition => AppConfigBase<TDefinition>.Definition;
+        public virtual ProductDefinitionBase DefinitionBase => Definition;
         public virtual TService AppService { get; protected set; }
         public virtual CancellationTokenSource TokenSource { get; } = new();
-        public virtual CancellationToken Token { get { return TokenSource.Token; } }
+        public virtual CancellationToken Token => TokenSource.Token;
         public virtual int ExitCode { get; set; } = 0;
         public virtual bool IsAppShutDown { get; protected set; } = false;
         public virtual Type AppWindowType { get; }
         public virtual Window AppWindow { get; protected set; }
         public virtual NotifyIcon NotifyIcon { get; }
         public virtual AppMessageService MessageService { get; protected set; }
-        public virtual ReceiverStore ReceiverStore { get; protected set; }
         public virtual SimStore SimStore { get; protected set; }
-        public virtual bool UpdateDetected { get; protected set; } = false;
-        public virtual bool UpdateIsDev { get; protected set; } = false;
-        public virtual string UpdateVersion { get; protected set; }
         protected virtual bool IsDisposed { get; set; } = false;
         public const string defaultConfigArg = "--writeConfig";
+
+        public event Action<Version, string> NewVersion;
+        public event Action<Version, string> NewBuild;
 
 
         public SimApp(Type windowType, Type notifyModelType) : base()
@@ -114,7 +113,7 @@ namespace CFIT.AppFramework
             if (idx == -1)
                 return false;
 
-            string path = args[idx+1];
+            string path = args[idx + 1];
             if (!Path.IsPathFullyQualified(path))
                 return false;
             path = Path.Join(path, DefinitionBase.ProductConfigFile);
@@ -153,8 +152,8 @@ namespace CFIT.AppFramework
             Logger.Information($"OnStartup received. Parsing Arguments (Count: {e?.Args?.Length}) ...");
             ParseArguments(e.Args);
 
-            Logger.Information($"Checking Version ...");
-            await CheckVersion();
+            Logger.Information($"Checking App Version (in Background) ...");
+            _ = CheckVersion();
 
             Logger.Information($"Intializing MessageService ...");
             InitMessageService();
@@ -175,7 +174,7 @@ namespace CFIT.AppFramework
             await StartAppLogger();
 
             Logger.Information($"Starting App Service ...");
-            AppService.Start();
+            await AppService.Start();
 
             Logger.Information($"Creating App Window ({AppWindowType.Name}) ...");
             InitAppWindow();
@@ -200,7 +199,6 @@ namespace CFIT.AppFramework
         protected virtual void InitResourceStores()
         {
             SimStore = new(AppService.SimConnect);
-            ReceiverStore = new(MessageService);
         }
 
         protected virtual void InitAppWindow()
@@ -215,6 +213,25 @@ namespace CFIT.AppFramework
 
             if (Definition.MainWindowSetTitle)
                 AppWindow.Title = $"{AppWindow.Title} ({Definition.ProductVersionString})";
+
+            if (Config.AppWindowRestorePosition)
+            {
+                bool isVisible = Gui.IsWindowPlacementVisible(Config.WindowPosLeft, Config.WindowPosTop);
+                if (isVisible && Config.WindowPosLeft != 0 && Config.WindowPosTop != 0)
+                {
+                    AppWindow.Top = Config.WindowPosTop;
+                    AppWindow.Left = Config.WindowPosLeft;
+                }
+                AppWindow.IsVisibleChanged += (_, _) =>
+                {
+                    if (AppWindow.Visibility != Visibility.Visible)
+                    {
+                        Config.WindowPosTop = AppWindow.Top;
+                        Config.WindowPosLeft = AppWindow.Left;
+                        Config.SaveConfiguration();
+                    }
+                };
+            }
         }
 
         protected virtual void InitAppService()
@@ -241,70 +258,40 @@ namespace CFIT.AppFramework
         {
             try
             {
-                var appVersion = Version.Parse(Definition.ProductVersion.ToString(3));
+                Version appVersion = Version.Parse(Definition.ProductVersion.ToString(3));
+                string appTimestamp = Definition.ProductTimestamp;
 
                 HttpClient client = new()
                 {
-                    Timeout = TimeSpan.FromMilliseconds(1500)
+                    Timeout = TimeSpan.FromSeconds(10),
                 };
-                client.DefaultRequestHeaders.Accept.Clear();
-                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github.v3+json"));
-                client.DefaultRequestHeaders.Add("User-Agent", ".NET Foundation Repository Reporter");
+                string url = $"{Definition.ProductVersionFileCdn}?{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
+                Logger.Debug($"Fetch version File from: {url}");
+                string json = await client.GetStringAsync(url);
+                Logger.Verbose($"json received: len {json?.Length}");
+                JsonNode node = JsonSerializer.Deserialize<JsonNode>(json);
+                Version repoVersion = Version.Parse(node["Version"].ToString());
+                string repoTimestamp = node["Timestamp"].ToString();
+                Logger.Debug($"Found online: {repoVersion}-{repoTimestamp}");
 
-                Version repoVersion = appVersion;
-                try
-                {
-                    Logger.Debug($"Checking Release Versions ...");
-                    string json = await client.GetStringAsync($"{Definition.ProductGitApi}/releases/latest");
-                    Logger.Debug($"json received: len {json?.Length}");
-                    JsonNode node = JsonSerializer.Deserialize<JsonNode>(json);
-                    string tag_name = node["tag_name"].ToString();
-                    if (tag_name.StartsWith('v'))
-                        tag_name = tag_name[1..];
-
-                    if (Version.TryParse(tag_name, out Version version))
-                        repoVersion = version;
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogException(ex);
-                }
-
-                Logger.Debug($"Comparing {repoVersion} to {appVersion}");
                 if (repoVersion > appVersion)
                 {
-                    UpdateDetected = true;
-                    UpdateVersion = repoVersion.ToString(3);
-                    Logger.Information($"New Stable Version detected: {UpdateVersion}");
+                    Logger.Information($"New Version detected: {repoVersion.ToString(3)}");
+                    await Task.Delay(1500);
+                    ModelHelper.RunOnDispatcher(() => NewVersion?.Invoke(repoVersion, repoTimestamp));
                 }
-                else if (repoVersion <= appVersion)
+                else if (string.Compare(repoTimestamp, appTimestamp, StringComparison.OrdinalIgnoreCase) > 0)
                 {
-                    if (Definition.ProductVersionCheckDev)
-                    {
-                        string json = await client.GetStringAsync(Definition.ProductDevVersionFile);
-                        Logger.Debug($"json received: len {json?.Length}");
-                        JsonNode node = JsonSerializer.Deserialize<JsonNode>(json);
-                        string timestamp = Definition.ProductTimestamp;
-                        Logger.Debug($"Comparing {node["Timestamp"]!} to {timestamp}");
-                        if (string.Compare(node["Timestamp"]!.ToString(), timestamp, StringComparison.InvariantCultureIgnoreCase) > 0)
-                        {
-                            UpdateDetected = true;
-                            UpdateVersion = node["Timestamp"]!.ToString();
-                            UpdateIsDev = true;
-                            Logger.Information($"New Dev Version detected: {UpdateVersion}");
-                        }
-                        else
-                            Logger.Information($"Application up-to-date!");
-                    }
-                    else
-                        Logger.Information($"Application up-to-date!");
+                    Logger.Information($"New Build detected: {repoTimestamp}");
+                    await Task.Delay(1500);
+                    ModelHelper.RunOnDispatcher(() => NewBuild?.Invoke(repoVersion, repoTimestamp));
                 }
                 else
-                    Logger.Debug($"Mismatch of Repo to App Version ({repoVersion} vs. {appVersion})");
+                    Logger.Information($"Application up-to-date!");
             }
             catch (Exception ex)
             {
-                Logger.LogException(ex);
+                Logger.Error($"Error '{ex.GetType().Name}' while checking Version: {ex.Message}");
             }
         }
 
@@ -363,8 +350,8 @@ namespace CFIT.AppFramework
             if (TokenSource.IsCancellationRequested)
                 return;
 
-            await AppService.Stop();
             TokenSource.Cancel();
+            await AppService.Stop();
         }
 
         protected virtual void FreeResources()
@@ -374,7 +361,6 @@ namespace CFIT.AppFramework
             IsDisposed = true;
 
             SimStore.Clear();
-            ReceiverStore.Clear();
 
             NotifyIcon.Dispose();
         }

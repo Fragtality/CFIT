@@ -23,7 +23,7 @@ namespace CFIT.AppTools
             bool isDirectory;
             foreach (var entry in archive.Entries)
             {
-                if (!entry.FullName.StartsWith($"{directoryName}/",StringComparison.InvariantCultureIgnoreCase))
+                if (!entry.FullName.StartsWith($"{directoryName}/", StringComparison.InvariantCultureIgnoreCase))
                     continue;
 
                 isDirectory = entry.FullName.EndsWith('/');

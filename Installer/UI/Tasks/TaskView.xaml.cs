@@ -69,7 +69,7 @@ namespace CFIT.Installer.UI.Tasks
 
                 UpdateTaskView(FirstRefresh);
                 FirstRefresh = false;
-            }            
+            }
         }
 
         public void Disable(bool collapse)
@@ -142,7 +142,7 @@ namespace CFIT.Installer.UI.Tasks
             var block = new TextBlock(hyperlink)
             {
                 Margin = new Thickness(0),
-                Padding = new Thickness(0,2,8,2)
+                Padding = new Thickness(0, 2, 8, 2)
             };
             return block;
         }
@@ -181,7 +181,7 @@ namespace CFIT.Installer.UI.Tasks
                         mapping.Item2.IsEnabled = false;
                 }
 
-            }    
+            }
         }
 
         protected void UpdateBorder(bool force)

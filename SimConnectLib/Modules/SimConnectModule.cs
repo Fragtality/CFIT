@@ -8,19 +8,21 @@ namespace CFIT.SimConnectLib.Modules
     {
         public virtual SimConnectManager Manager { get; }
         public virtual bool IsReceiveRunning { get { return Manager.IsReceiveRunning; } }
+        public virtual bool WasRegisteredBefore { get; protected set; } = false;
 
-        public SimConnectModule(SimConnectManager manager, object moduleParams)
+        public SimConnectModule(SimConnectManager manager, object moduleParams, bool wasRegisteredBefore)
         {
             Manager = manager;
+            WasRegisteredBefore = wasRegisteredBefore;
             SetModuleParams(moduleParams);
             RegisterModule();
         }
 
         protected abstract void SetModuleParams(object moduleParams);
 
-        public virtual async Task<bool> Call(Action<SimConnect> action)
+        public virtual Task<bool> Call(Action<SimConnect> action)
         {
-            return await Manager?.Call(action);
+            return Manager?.Call(action);
         }
 
         public virtual Task OnOpen(SIMCONNECT_RECV_OPEN evtData)

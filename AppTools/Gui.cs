@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Drawing;
 using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
@@ -46,7 +49,7 @@ namespace CFIT.AppTools
         }
 
         //VS: Embedded Resource
-        public static void SetImageSourceFromResourceManifest(this Image image, string icon, string prefix = "", Assembly assembly = null, string extension = ".png")
+        public static void SetImageSourceFromResourceManifest(this System.Windows.Controls.Image image, string icon, string prefix = "", Assembly assembly = null, string extension = ".png")
         {
             image.Source = GetBitmapImageFromResourceManifest(icon, prefix, assembly, extension);
         }
@@ -82,12 +85,12 @@ namespace CFIT.AppTools
         }
 
         //VS: Resource
-        public static void SetImageSourceFromPackUri(this Image image, Uri uri)
+        public static void SetImageSourceFromPackUri(this System.Windows.Controls.Image image, Uri uri)
         {
             image.Source = new BitmapImage(uri);
         }
 
-        public static void SetImageSourceFromPackUri(this Image image, string icon, string prefix = "/", string extension = ".png")
+        public static void SetImageSourceFromPackUri(this System.Windows.Controls.Image image, string icon, string prefix = "/", string extension = ".png")
         {
             image.Source = GetBitmapImageFromPackUri(icon, prefix, extension);
         }
@@ -149,10 +152,80 @@ namespace CFIT.AppTools
             if (brush != null && panel?.Children[0] is TextBlock brushLabel)
                 brushLabel.Foreground = brush;
 
-            if (icon != null && panel?.Children[1] is Image image)
+            if (icon != null && panel?.Children[1] is System.Windows.Controls.Image image)
             {
                 image.Source = icon;
             }
+        }
+
+        public static BitmapSource ToImageSource(this Icon icon)
+        {
+            return Imaging.CreateBitmapSourceFromHIcon(
+                icon.Handle,
+                Int32Rect.Empty,
+                BitmapSizeOptions.FromEmptyOptions());
+        }
+
+        [DllImport("user32.dll")]
+        static extern IntPtr MonitorFromRect(ref RECT lprc, uint dwFlags);
+
+        [DllImport("user32.dll")]
+        static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
+
+        public const uint MONITOR_DEFAULTTONEAREST = 0x00000002;
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct RECT
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct MONITORINFO
+        {
+            public int cbSize;
+            public RECT rcMonitor;
+            public RECT rcWork;
+            public uint dwFlags;
+        }
+
+        public static bool IsWindowPlacementVisible(double left, double top, double width = 256, double height = 256)
+        {
+            var rect = new RECT
+            {
+                Left = (int)left,
+                Top = (int)top,
+                Right = (int)(left + width),
+                Bottom = (int)(top + height)
+            };
+
+            IntPtr monitor = MonitorFromRect(
+                ref rect,
+                MONITOR_DEFAULTTONEAREST);
+
+            if (monitor == IntPtr.Zero)
+                return false;
+
+            var monitorInfo = new MONITORINFO
+            {
+                cbSize = Marshal.SizeOf<MONITORINFO>()
+            };
+
+            if (!GetMonitorInfo(monitor, ref monitorInfo))
+                return false;
+
+            var work = monitorInfo.rcWork;
+
+            bool intersects =
+                rect.Left < work.Right &&
+                rect.Right > work.Left &&
+                rect.Top < work.Bottom &&
+                rect.Bottom > work.Top;
+
+            return intersects;
         }
     }
 }

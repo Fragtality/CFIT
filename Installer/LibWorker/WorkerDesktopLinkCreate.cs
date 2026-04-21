@@ -19,14 +19,13 @@ namespace CFIT.Installer.LibWorker
             return Sys.CreateLink(Config.ProductName, Config.ProductExePath, $"Start {Config.ProductName}");
         }
 
-        protected override async Task<bool> DoRun()
+        protected override Task<bool> DoRun()
         {
-            await Task.Delay(0);
             bool result = CreateLink();
             if (result)
                 Model.SetSuccess("Link placed on Desktop!");
 
-            return result;
+            return Task.FromResult(result);
         }
     }
 }

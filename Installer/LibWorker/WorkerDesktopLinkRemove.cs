@@ -29,14 +29,13 @@ namespace CFIT.Installer.LibWorker
             return !File.Exists(link);
         }
 
-        protected override async Task<bool> DoRun()
+        protected override Task<bool> DoRun()
         {
-            await Task.Delay(0);
             bool result = RemoveLink();
             if (result)
                 Model.SetSuccess("Link removed from Desktop!");
 
-            return result;
+            return Task.FromResult(result);
         }
     }
 }

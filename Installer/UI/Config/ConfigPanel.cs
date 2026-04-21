@@ -11,7 +11,7 @@ namespace CFIT.Installer.UI.Config
 
         public ConfigPanel() : base()
         {
-            
+
         }
 
         public virtual void Activate(List<ConfigItem> items)
@@ -57,7 +57,7 @@ namespace CFIT.Installer.UI.Config
                 {
                     Header = new Label() { Content = item.Name, FontWeight = FontWeights.DemiBold },
                     Content = panel,
-                    Margin = new Thickness(16,16,16,0),
+                    Margin = new Thickness(16, 16, 16, 0),
                     Padding = new Thickness(8),
                     BorderBrush = item.BorderBrush,
                     BorderThickness = item.BorderThickness,

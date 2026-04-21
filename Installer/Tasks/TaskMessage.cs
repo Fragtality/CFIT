@@ -19,7 +19,7 @@ namespace CFIT.Installer.Tasks
             Newline = newline;
             FontWeight = weight ?? FontWeights.Normal;
             Style = style ?? FontStyles.Normal;
-            Decorations = decorations;           
+            Decorations = decorations;
         }
 
         public virtual Run CreateElement(bool ignoreNewline)

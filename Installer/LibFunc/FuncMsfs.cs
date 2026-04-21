@@ -152,7 +152,7 @@ namespace CFIT.Installer.LibFunc
                 if (line.StartsWith(MsfsStringPackagePath))
                 {
                     Logger.Debug($"Found Match!");
-                    return line.Replace("\"", "").Substring(MsfsStringPackagePath.Length) + "\\Community";
+                    return $"{line.Replace("\"", "").Substring(MsfsStringPackagePath.Length)}\\Community";
                 }
             }
 
@@ -290,9 +290,9 @@ namespace CFIT.Installer.LibFunc
                 if (!found)
                 {
                     Logger.Debug($"Adding Xml Node");
-                    XmlNode outerNode = xmlDoc.CreateElement("Launch.Addon");
+                    XmlElement outerNode = xmlDoc.CreateElement("Launch.Addon");
 
-                    XmlNode innerNode = xmlDoc.CreateElement("Disabled");
+                    XmlElement innerNode = xmlDoc.CreateElement("Disabled");
                     innerNode.InnerText = "False";
                     outerNode.AppendChild(innerNode);
 

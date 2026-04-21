@@ -4,9 +4,9 @@ using System.Threading.Tasks;
 
 namespace CFIT.AppFramework.UI.ViewModels.Commands
 {
-    public class CommandWrapper(Action execute, Func<bool> canExecute = null) : CommandWrapperBase()
+    public class CommandWrapperAsync(Func<Task> execute, Func<bool> canExecute = null) : CommandWrapperBase()
     {
-        public virtual Action ActionExecute { get; } = execute;
+        public virtual Func<Task> ActionExecute { get; } = execute;
         public virtual Func<bool> FuncCanExecute { get; } = canExecute;
 
         protected override bool CheckCanExecute(object? parameter)
@@ -21,18 +21,16 @@ namespace CFIT.AppFramework.UI.ViewModels.Commands
             }
         }
 
-        protected override Task DoExecute(object? parameter)
+        protected override async Task DoExecute(object? parameter)
         {
             try
             {
-                ActionExecute?.Invoke();
+                await ActionExecute?.Invoke();
             }
             catch (Exception ex)
             {
                 Logger.LogException(ex);
             }
-
-            return Task.CompletedTask;
         }
     }
 }

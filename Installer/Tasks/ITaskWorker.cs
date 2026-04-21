@@ -10,7 +10,7 @@ namespace CFIT.Installer.Tasks
 
         bool IsRunning { get; }
         bool HasFinished { get; }
-        bool IsSuccess { get;  }
+        bool IsSuccess { get; }
         bool IsFailed { get; }
 
         bool IgnoreFailed { get; }

@@ -23,7 +23,7 @@ namespace CFIT.SimConnectLib.SimResources
         public int Subscriptions { get; }
         public bool IsSubscribed { get; }
         public bool IsRegistered { get; }
-        public bool IsReceived { get;}
+        public bool IsReceived { get; }
         public Task Register();
 
         public Task Request();
@@ -66,9 +66,9 @@ namespace CFIT.SimConnectLib.SimResources
 
         public abstract Task Unregister(bool disconnect);
 
-        protected virtual async Task<bool> Call(Action<SimConnect> action)
+        protected virtual Task<bool> Call(Action<SimConnect> action)
         {
-            return await Manager?.Call(action);
+            return Manager?.Call(action);
         }
 
         public virtual T GetValue<T>()
@@ -209,13 +209,13 @@ namespace CFIT.SimConnectLib.SimResources
 
         public abstract Task<bool> WriteValue(object value);
 
-        public virtual async Task<bool> WriteValues(object[] values)
+        public virtual Task<bool> WriteValues(object[] values)
         {
             if (values?.Length >= 1)
-                return await WriteValue(values[0]);
+                return WriteValue(values[0]);
             else
                 Logger.Warning($"Received Array was null or empty");
-            return false;
+            return Task.FromResult(false);
         }
 
         protected virtual void SetReceived()
@@ -243,16 +243,22 @@ namespace CFIT.SimConnectLib.SimResources
             }
         }
 
-        public virtual void Subscribe(SimResourceSubscription<TManager, TResource, TSubscription> subscription)
+        public virtual Task Subscribe(SimResourceSubscription<TManager, TResource, TSubscription> subscription)
         {
             OnReceived += subscription.Update;
+            return Task.CompletedTask;
         }
 
-        public virtual void Unsubscribe(SimResourceSubscription<TManager, TResource, TSubscription> subscription)
+        public virtual Task Unsubscribe(SimResourceSubscription<TManager, TResource, TSubscription> subscription)
         {
             OnReceived -= subscription.Update;
             if (!IsSubscribed && !IsInternal)
-                Unregister(false);
+            {
+                OnReceived = null;
+                return Unregister(false);
+            }
+            else
+                return Task.CompletedTask;
         }
 
         public abstract override string ToString();

@@ -15,7 +15,7 @@ namespace CFIT.Installer.LibFunc
             @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\FSUIPC7",
             @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\FSUIPC7Both",
             @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\FSUIPC72024",
-        
+
         };
 
         public static string Fsuipc7RegValueVersion { get; } = "DisplayVersion";

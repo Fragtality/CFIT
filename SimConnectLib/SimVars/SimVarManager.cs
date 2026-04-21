@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace CFIT.SimConnectLib.SimVars
 {
-    public class SimVarManager(SimConnectManager manager, object moduleParams) : SimResourceManager<SimVarManager, SimVar, SimVarSubscription>(manager, moduleParams)
+    public class SimVarManager(SimConnectManager manager, object moduleParams, bool wasRegisteredBefore) : SimResourceManager<SimVarManager, SimVar, SimVarSubscription>(manager, moduleParams, wasRegisteredBefore)
     {
         protected override MappedIdStore AllocateStore()
         {
@@ -30,12 +30,14 @@ namespace CFIT.SimConnectLib.SimVars
             return Task.CompletedTask;
         }
 
-        protected virtual void Update(SIMCONNECT_RECV_SIMOBJECT_DATA evtData)
+        protected virtual Task Update(SIMCONNECT_RECV_SIMOBJECT_DATA evtData)
         {
             if (IdStore.Contains(evtData?.dwDefineID) && evtData?.dwData?.Length >= 1)
                 Update(evtData.dwRequestID, evtData.dwData[0]);
             else
                 Logger.Debug($"Received Event did not match - dwDefineID {evtData?.dwDefineID} dwRequestID {evtData?.dwRequestID} dwData.Length {evtData?.dwData?.Length}");
+
+            return Task.CompletedTask;
         }
 
         protected virtual void Update(uint id, object value)

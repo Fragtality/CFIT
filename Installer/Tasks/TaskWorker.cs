@@ -23,9 +23,7 @@ namespace CFIT.Installer.Tasks
         public virtual TaskModel Model { get; protected set; }
         public Queue<ITaskWorker> LinkedTasks { get; } = new Queue<ITaskWorker>();
 
-#pragma warning disable
         public TaskWorker(C config, string title, string message = "")
-#pragma warning restore
         {
             Config = config;
             Model = new TaskModel(title, message);

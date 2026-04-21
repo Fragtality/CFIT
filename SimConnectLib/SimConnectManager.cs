@@ -28,6 +28,7 @@ namespace CFIT.SimConnectLib
         public virtual SimConnectHook WindowHook { get; }
         internal virtual IdAllocator IdAllocator { get; }
         protected virtual ConcurrentDictionary<string, SimConnectModule> Modules { get; } = [];
+        protected virtual ConcurrentDictionary<Type, bool> ModuleTypesRegistered { get; } = [];
         public virtual SimVarManager VariableManager { get; }
         public virtual SimEventManager EventManager { get; }
         public virtual SimStateManager StateManager { get; }
@@ -63,13 +64,14 @@ namespace CFIT.SimConnectLib
         protected virtual SimConnect.RecvEventFilenameEventHandler RecvEventFilenameEventHandler { get; }
         protected virtual SimConnect.RecvSystemStateEventHandler RecvSystemStateEventHandler { get; }
         protected virtual SimConnect.RecvSimobjectDataEventHandler RecvSimobjectDataEventHandler { get; }
+        protected virtual SimConnect.RecvClientDataEventHandler RecvClientDataEventHandler { get; }
 
-        public event Action<SimConnectManager> CallbackWindowHooked;
+        public event Func<SimConnectManager, Task> CallbackWindowHooked;
         public event Action<SimConnectManager, long> CallbackCameraState;
         public event Action<SimConnectManager, bool> CallbackSimState;
         public event Action<SimConnectManager, string> CallbackAircraftString;
         public event Action<SimConnectManager, PAUSE_FLAGS> CallbackPause;
-        public event Action<SimConnectManager> CallbackResetState;
+        public event Func<SimConnectManager, Task> CallbackResetState;
 
         public SimConnectManager(ISimConnectConfig config, Type allocatorType, CancellationToken token)
         {
@@ -85,6 +87,7 @@ namespace CFIT.SimConnectLib
             RecvEventFilenameEventHandler = new SimConnect.RecvEventFilenameEventHandler(Handler_OnReceiveEventFile);
             RecvSystemStateEventHandler = new SimConnect.RecvSystemStateEventHandler(Handler_OnReceiveSystemState);
             RecvSimobjectDataEventHandler = new SimConnect.RecvSimobjectDataEventHandler(Handler_OnSimobjectData);
+            RecvClientDataEventHandler = new SimConnect.RecvClientDataEventHandler(Handler_OnClientData);
 
             Config = config;
             Token = token;
@@ -102,16 +105,16 @@ namespace CFIT.SimConnectLib
         protected virtual void CreateInternalSubscriptions()
         {
             var camSub = VariableManager.Subscribe("CAMERA STATE", SimUnitType.Enum, true);
-            camSub.OnReceived += (sub, value) => { SetCamera(sub.GetValue<uint>()); };
+            camSub.OnReceived += (sub, value) => OnCamera(sub.GetValue<uint>());
 
             var aircraftSub = StateManager.Subscribe(SimStateInfo.AircraftLoaded, true);
-            aircraftSub.OnReceived += (sub, value) => { SetAircraftState(sub.GetString()); };
+            aircraftSub.OnReceived += (sub, value) => OnAircraftState(sub.GetString());
 
             var pauseSub = StateManager.Subscribe(SimStateInfo.Pause_EX1, true);
-            pauseSub.OnReceived += (sub, value) => { SetPause(sub.GetValue<uint>()); };
+            pauseSub.OnReceived += (sub, value) => OnPause(sub.GetValue<uint>());
 
             var simSub = StateManager.Subscribe(SimStateInfo.Sim, true);
-            simSub.OnReceived += (sub, value) => { SetSimState(sub.GetValue<uint>() == 1); };
+            simSub.OnReceived += (sub, value) => OnSimState(sub.GetValue<uint>() == 1);
         }
 
         public virtual void SetSimConnect(SimConnect instance)
@@ -158,7 +161,7 @@ namespace CFIT.SimConnectLib
                     Logger.Information($"Hooking to current Main Window ...");
                     WindowHook.HookMainWindow();
                 }
-                _ = TaskTools.RunLogged(() => { CallbackWindowHooked?.Invoke(this); }, Token);
+                _ = TaskTools.RunPool(() => CallbackWindowHooked?.Invoke(this), Token);
             }
         }
 
@@ -171,13 +174,15 @@ namespace CFIT.SimConnectLib
                     Logger.Warning($"SimConnectModule Type '{moduleType.Name}' is already added");
                     return null;
                 }
-
-                var module = moduleType.CreateInstance<SimConnectModule, SimConnectManager, object>(this, moduleParams);
+                bool wasRegisteredBefore = ModuleTypesRegistered.ContainsKey(moduleType);
+                if (!wasRegisteredBefore)
+                    ModuleTypesRegistered.Add(moduleType);
+                var module = moduleType.CreateInstance<SimConnectModule, SimConnectManager, object, bool>(this, moduleParams, wasRegisteredBefore);
 
                 if (module != null)
                 {
                     Modules.Add(moduleType.Name, module);
-                    Logger.Debug($"Added new Module of Type '{moduleType?.Name}'");
+                    Logger.Debug($"Added new Module of Type '{moduleType?.Name}' (wasRegisteredBefore: {wasRegisteredBefore})");
                     if (IsReceiveRunning)
                         module.OnOpen(SimConnectOpenData).GetAwaiter().GetResult();
                 }
@@ -190,13 +195,13 @@ namespace CFIT.SimConnectLib
             }
         }
 
-        public virtual void RemoveModule(Type moduleType)
+        public virtual async Task RemoveModule(Type moduleType)
         {
             try
             {
                 if (Modules.TryGetValue(moduleType.Name, out SimConnectModule? module))
                 {
-                    module?.UnregisterModule(true);
+                    await module?.UnregisterModule(true);
                     Modules.Remove(moduleType.Name);
                     Logger.Debug($"Removed Module of Type '{moduleType?.Name}'");
                 }
@@ -241,6 +246,7 @@ namespace CFIT.SimConnectLib
                     SimConnectInstance.OnRecvEventFilename += RecvEventFilenameEventHandler;
                     SimConnectInstance.OnRecvSystemState += RecvSystemStateEventHandler;
                     SimConnectInstance.OnRecvSimobjectData += RecvSimobjectDataEventHandler;
+                    SimConnectInstance.OnRecvClientData += RecvClientDataEventHandler;
                     IsSimConnectInitialized = true;
                     Logger.Debug($"SimConnect Object initialized");
                 }
@@ -265,11 +271,12 @@ namespace CFIT.SimConnectLib
             }
         }
 
-        public virtual void Disconnect()
+        public virtual async Task Disconnect()
         {
             try
             {
-                CallModules(module => { module.UnregisterModule(true); });
+                await CallModules(module => module.UnregisterModule(true));
+                ModuleTypesRegistered.Clear();
 
                 if (SimConnectInstance != null)
                 {
@@ -283,6 +290,7 @@ namespace CFIT.SimConnectLib
                         SimConnectInstance.OnRecvEventFilename -= RecvEventFilenameEventHandler;
                         SimConnectInstance.OnRecvSystemState -= RecvSystemStateEventHandler;
                         SimConnectInstance.OnRecvSimobjectData -= RecvSimobjectDataEventHandler;
+                        SimConnectInstance.OnRecvClientData -= RecvClientDataEventHandler;
                     }
                     catch { }
 
@@ -299,53 +307,60 @@ namespace CFIT.SimConnectLib
             }
         }
 
-        protected virtual void SetCamera(uint state)
+        protected virtual Task OnCamera(uint state)
         {
             Logger.Debug($"Received Camera State: {state}");
             CameraState = state;
-            _ = TaskTools.RunLogged(() => { CallbackCameraState?.Invoke(this, CameraState); }, Token);
+
+            _ = TaskTools.RunPool(() => CallbackCameraState?.Invoke(this, CameraState), Token);
+            return Task.CompletedTask;
         }
 
-        protected virtual void SetAircraftState(string str)
+        protected virtual Task OnAircraftState(string str)
         {
             IsAircraftReceived = !string.IsNullOrWhiteSpace(str);
             Logger.Debug($"Received AircraftString: {str}");
             AircraftString = str;
             IsAircraftRequested = false;
-            _ = TaskTools.RunLogged(() => { CallbackAircraftString?.Invoke(this, AircraftString); }, Token);
+
+            _ = TaskTools.RunPool(() => CallbackAircraftString?.Invoke(this, AircraftString), Token);
+            return Task.CompletedTask;
         }
 
-        protected virtual void SetPause(uint value)
+        protected virtual Task OnPause(uint value)
         {
             PauseFlag = (PAUSE_FLAGS)value;
             Logger.Debug($"Received Pause: {PauseFlag as Enum}");
             if (PauseFlag.HasFlag(PAUSE_FLAGS.PAUSE) || PauseFlag.HasFlag(PAUSE_FLAGS.PAUSE_ACTIVE) || PauseFlag.HasFlag(PAUSE_FLAGS.PAUSE_SIM))
             {
-                Logger.Information("Sim is paused");
                 IsPaused = true;
             }
             else if (value == 0)
             {
-                Logger.Information("Sim is unpaused");
                 IsPaused = false;
             }
-            _ = TaskTools.RunLogged(() => { CallbackPause?.Invoke(this, PauseFlag); }, Token);
+
+            _ = TaskTools.RunPool(() => CallbackPause?.Invoke(this, PauseFlag), Token);
+            return Task.CompletedTask;
         }
 
-        protected virtual void SetSimState(bool simRunning)
+        protected virtual Task OnSimState(bool simRunning)
         {
             if (!IsSimRunning && simRunning)
             {
                 Logger.Debug($"SimState true");
                 IsSimRunning = true;
-                _ = TaskTools.RunLogged(() => { CallbackSimState?.Invoke(this, IsSimRunning); }, Token);
+                _ = TaskTools.RunPool(() => CallbackSimState?.Invoke(this, IsSimRunning), Token);
             }
+
             if (IsSimRunning && !simRunning)
             {
                 Logger.Debug($"SimState false");
                 IsSimRunning = false;
-                _ = TaskTools.RunLogged(() => { CallbackSimState?.Invoke(this, IsSimRunning); }, Token);
+                _ = TaskTools.RunPool(() => CallbackSimState?.Invoke(this, IsSimRunning), Token);
             }
+
+            return Task.CompletedTask;
         }
 
         protected virtual void ResetState()
@@ -361,7 +376,7 @@ namespace CFIT.SimConnectLib
             IsAircraftReceived = false;
             IsAircraftRequested = false;
             IsAircraftCleared = true;
-            _ = TaskTools.RunLogged(() => { CallbackResetState?.Invoke(this); }, Token);
+            _ = TaskTools.RunPool(() => CallbackResetState?.Invoke(this), Token);
         }
 
         public virtual void SemaphoreRelease()
@@ -395,8 +410,6 @@ namespace CFIT.SimConnectLib
                 SemaphoreRelease();
                 if (!QuitReceived)
                     Logger.LogException(ex);
-                else
-                    Logger.Warning($"{ex.GetType().Name} during SimConnect Call");
             }
 
             return result;
@@ -415,10 +428,13 @@ namespace CFIT.SimConnectLib
                 SemaphoreRelease();
                 IsReceiveRunning = false;
 
-                if (ex.Message != "0xC00000B0")
-                    Logger.LogException(ex);
-                else
-                    Logger.Error($"Exception catched: '{ex.GetType()}' - '{ex.Message}'");
+                if (!QuitReceived)
+                {
+                    if (ex.Message != "0xC00000B0")
+                        Logger.LogException(ex);
+                    else
+                        Logger.Error($"Exception catched: '{ex.GetType()}' - '{ex.Message}'");
+                }
             }
         }
 
@@ -437,18 +453,21 @@ namespace CFIT.SimConnectLib
             return !IsPaused && ((CameraState != 0 && CameraState < 11) || (IsAircraftReceived && (CameraState == 30 || CameraState == 31)));
         }
 
-        protected virtual void CallModules(Action<SimConnectModule> action)
+        protected virtual async Task CallModules(Func<SimConnectModule, Task> action)
         {
             foreach (var module in Modules)
             {
                 try
                 {
-                    action.Invoke(module.Value);
+                    await action.Invoke(module.Value);
                 }
                 catch (Exception ex)
                 {
-                    Logger.Debug($"Module: {module.Key}");
-                    Logger.LogException(ex);
+                    if (!QuitReceived)
+                    {
+                        Logger.Debug($"Module: {module.Key}");
+                        Logger.LogException(ex);
+                    }
                 }
             }
         }
@@ -485,7 +504,7 @@ namespace CFIT.SimConnectLib
             {
                 IsAircraftCleared = true;
                 Logger.Debug($"Clear AircraftString");
-                SetAircraftState("");
+                await OnAircraftState("");
                 IsAircraftReceived = false;
             }
         }
@@ -495,23 +514,24 @@ namespace CFIT.SimConnectLib
             if (IsReceiveRunning)
             {
                 await CheckAircraftString();
-                CallModules(module => { module.CheckState(); });
+                await CallModules(module => module.CheckState());
                 LastCameraValid = IsCameraValid;
             }
         }
 
-        public virtual int CheckResources()
+        public virtual async Task<int> CheckResources()
         {
             int count = 0;
             if (IsReceiveRunning)
-                CallModules(async module => { count += await module.CheckResources(); });
+                foreach (var module in Modules.Values)
+                    count += await module.CheckResources();
 
             return count;
         }
 
-        public virtual void ClearUnusedRessources(bool clearAll)
+        public virtual Task ClearUnusedRessources(bool clearAll)
         {
-            CallModules(module => module.ClearUnusedResources(clearAll));
+            return CallModules(module => module.ClearUnusedResources(clearAll));
         }
 
         public event Func<SIMCONNECT_RECV_OPEN, Task> OnOpen;
@@ -524,7 +544,7 @@ namespace CFIT.SimConnectLib
                     IsReceiveRunning = true;
                     SimConnectOpenData = evtData;
                     Logger.Information($"SimConnect OnOpen received: {SimVersionString}");
-                    TaskTools.RunLogged(() => OnOpen?.Invoke(evtData));
+                    _ = TaskTools.RunPool(() => OnOpen?.Invoke(evtData));
                 }
                 else
                     Logger.Error("SimConnect is NULL!");
@@ -535,67 +555,74 @@ namespace CFIT.SimConnectLib
             }
         }
 
-        public event Action<SIMCONNECT_RECV> OnQuit;
+        public event Func<SIMCONNECT_RECV, Task> OnQuit;
         protected virtual void Handler_OnQuit(SimConnect sender, SIMCONNECT_RECV evtData)
         {
             Logger.Information($"SimConnect OnQuit received.");
             QuitReceived = true;
-            TaskTools.RunLogged(() => OnQuit?.Invoke(evtData));
-            Disconnect();
+            _ = TaskTools.RunPool(() => OnQuit?.Invoke(evtData));
+            _ = Disconnect();
         }
 
-        public event Action<SIMCONNECT_RECV_EXCEPTION> OnException;
+        public event Func<SIMCONNECT_RECV_EXCEPTION, Task> OnException;
         protected virtual void Handler_OnException(SimConnect sender, SIMCONNECT_RECV_EXCEPTION evtData)
         {
-            Logger.Error($"Exception '{((SIMCONNECT_EXCEPTION)evtData.dwException) as Enum}' received: (dwException {evtData.dwException} | dwID {evtData.dwID} | dwSendID {evtData.dwSendID} | dwIndex {evtData.dwIndex})");
-            TaskTools.RunLogged(() => OnException?.Invoke(evtData));
+            if (InputManager?.IsEnumerating == false && evtData?.dwException != 1 && evtData?.dwID != 1 && evtData?.dwIndex != 4294967295)
+                Logger.Error($"Exception '{((SIMCONNECT_EXCEPTION)evtData.dwException) as Enum}' received: (dwException {evtData.dwException} | dwID {evtData.dwID} | dwSendID {evtData.dwSendID} | dwIndex {evtData.dwIndex})");
+            _ = TaskTools.RunPool(() => OnException?.Invoke(evtData));
         }
 
-        public event Action<SIMCONNECT_RECV_SIMOBJECT_DATA> OnSimobjectData;
+        public event Func<SIMCONNECT_RECV_SIMOBJECT_DATA, Task> OnSimobjectData;
         protected virtual void Handler_OnSimobjectData(SimConnect sender, SIMCONNECT_RECV_SIMOBJECT_DATA evtData)
         {
             if (Config.VerboseLogging)
                 Logger.Verbose($"OnSimobjectData: dwID {evtData.dwID} | dwRequestID {evtData.dwRequestID} | dwDefineID {evtData.dwDefineID} | dwObjectID {evtData.dwObjectID}");
 
-            TaskTools.RunLogged(() => OnSimobjectData?.Invoke(evtData));
+            _ = TaskTools.RunPool(() => OnSimobjectData?.Invoke(evtData));
         }
 
-        public event Action<SIMCONNECT_RECV_SYSTEM_STATE> OnReceiveSystemState;
+        public event Func<SIMCONNECT_RECV_SYSTEM_STATE, Task> OnReceiveSystemState;
         protected virtual void Handler_OnReceiveSystemState(SimConnect sender, SIMCONNECT_RECV_SYSTEM_STATE evtData)
         {
             if (Config.VerboseLogging)
                 Logger.Verbose($"OnReceiveSystemState: dwID {evtData.dwID} | dwRequestID {evtData.dwRequestID} | dwInteger {evtData.dwInteger} | fFloat {evtData.fFloat} | szString {evtData.szString}");
 
-            TaskTools.RunLogged(() => OnReceiveSystemState?.Invoke(evtData));
+            _ = TaskTools.RunPool(() => OnReceiveSystemState?.Invoke(evtData));
         }
 
-        public event Action<SIMCONNECT_RECV_EVENT_FILENAME> OnReceiveEventFile;
+        public event Func<SIMCONNECT_RECV_EVENT_FILENAME, Task> OnReceiveEventFile;
         protected virtual void Handler_OnReceiveEventFile(SimConnect sender, SIMCONNECT_RECV_EVENT_FILENAME evtData)
         {
             if (Config.VerboseLogging)
                 Logger.Verbose($"OnReceiveEventFile: dwID {evtData.dwID} | uGroupID {evtData.uGroupID} | uEventID {evtData.uEventID} | szFileName {evtData.szFileName}");
 
-            TaskTools.RunLogged(() => OnReceiveEventFile?.Invoke(evtData));
+            _ = TaskTools.RunPool(() => OnReceiveEventFile?.Invoke(evtData));
         }
 
-        public event Action<SIMCONNECT_RECV_EVENT_EX1> OnReceiveEventEx1;
+        public event Func<SIMCONNECT_RECV_EVENT_EX1, Task> OnReceiveEventEx1;
         protected virtual void Handler_OnReceiveEventEx1(SimConnect sender, SIMCONNECT_RECV_EVENT_EX1 evtData)
         {
             SetConnected();
             if (Config.VerboseLogging)
                 Logger.Verbose($"OnReceiveEventEx1: dwID {evtData.dwID} | uGroupID {evtData.uGroupID} | uEventID {evtData.uEventID} | dwData0 {evtData.dwData0} | dwData1 {evtData.dwData1} | dwData2 {evtData.dwData2} | dwData3 {evtData.dwData3} | dwData4 {evtData.dwData4}");
 
-            TaskTools.RunLogged(() => OnReceiveEventEx1?.Invoke(evtData));
+            _ = TaskTools.RunPool(() => OnReceiveEventEx1?.Invoke(evtData));
         }
 
-        public event Action<SIMCONNECT_RECV_EVENT> OnReceiveEvent;
+        public event Func<SIMCONNECT_RECV_EVENT, Task> OnReceiveEvent;
         protected virtual void Handler_OnReceiveEvent(SimConnect sender, SIMCONNECT_RECV_EVENT evtData)
         {
             SetConnected();
             if (Config.VerboseLogging)
                 Logger.Verbose($"OnReceiveEvent: dwID {evtData.dwID} | uGroupID {evtData.uGroupID} | uEventID {evtData.uEventID} | dwData {evtData.dwData}");
 
-            TaskTools.RunLogged(() => OnReceiveEvent?.Invoke(evtData));
+            _ = TaskTools.RunPool(() => OnReceiveEvent?.Invoke(evtData));
+        }
+
+        public event Func<SIMCONNECT_RECV_CLIENT_DATA, Task> OnClientData;
+        protected virtual void Handler_OnClientData(SimConnect sender, SIMCONNECT_RECV_CLIENT_DATA evtData)
+        {
+            _ = TaskTools.RunPool(() => OnClientData?.Invoke(evtData));
         }
 
         protected virtual void Dispose(bool disposing)
@@ -605,7 +632,7 @@ namespace CFIT.SimConnectLib
                 if (disposing)
                 {
                     if (IsSimConnectInitialized)
-                        Disconnect();
+                        Disconnect().RunSync();
                     WindowHook?.ClearHook();
                     SimConnectSemaphore.Dispose();
                 }

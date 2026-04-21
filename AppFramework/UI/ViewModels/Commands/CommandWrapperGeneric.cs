@@ -1,5 +1,6 @@
 ﻿using CFIT.AppLogger;
 using System;
+using System.Threading.Tasks;
 
 namespace CFIT.AppFramework.UI.ViewModels.Commands
 {
@@ -20,7 +21,7 @@ namespace CFIT.AppFramework.UI.ViewModels.Commands
             }
         }
 
-        protected override void DoExecute(object? parameter)
+        protected override Task DoExecute(object? parameter)
         {
             try
             {
@@ -31,6 +32,7 @@ namespace CFIT.AppFramework.UI.ViewModels.Commands
             {
                 Logger.LogException(ex);
             }
+            return Task.CompletedTask;
         }
     }
 }

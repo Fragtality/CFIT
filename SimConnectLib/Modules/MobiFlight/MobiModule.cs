@@ -50,12 +50,9 @@ namespace CFIT.SimConnectLib.Modules.MobiFlight
         public virtual List<string> LvarList { get; } = [];
         protected virtual bool RequestingList { get; set; } = false;
 
-        protected virtual SimConnect.RecvClientDataEventHandler RecvClientDataEventHandler { get; }
-
-        public MobiModule(SimConnectManager manager, object config) : base(manager, config)
+        public MobiModule(SimConnectManager manager, object config, bool wasRegisteredBefore) : base(manager, config, wasRegisteredBefore)
         {
             Config = config as IMobiConfig ?? throw new Exception($"Could not cast passed Config to IMobiConfig ('{config?.GetType()?.Name}')");
-            RecvClientDataEventHandler = new SimConnect.RecvClientDataEventHandler(OnClientData);
 
             CLIENT_ID_MOBIMODULE = ClientIdStore.MapConstant("CLIENT_ID_MOBIMODULE");
             CLIENT_ID_MOBICLIENT = ClientIdStore.MapConstant("CLIENT_ID_MOBICLIENT");
@@ -92,7 +89,7 @@ namespace CFIT.SimConnectLib.Modules.MobiFlight
         public override async Task OnOpen(SIMCONNECT_RECV_OPEN evtData)
         {
             await base.OnOpen(evtData);
-            Manager.GetSimConnect().OnRecvClientData += RecvClientDataEventHandler;
+            Manager.OnClientData += OnClientData;
             await CreateDataAreaDefaultChannel();
         }
 
@@ -118,16 +115,17 @@ namespace CFIT.SimConnectLib.Modules.MobiFlight
             }
         }
 
-        public override async Task CheckState()
+        public override Task CheckState()
         {
-            await CheckConnection();
+            return CheckConnection();
         }
 
-        public override async Task<int> CheckResources()
+        public override Task<int> CheckResources()
         {
             if (IsMobiConnected)
-                return await base.CheckResources();
-            return 0;
+                return base.CheckResources();
+            else
+                return Task.FromResult(0);
         }
 
         protected override async Task Unregister(bool disconnect)
@@ -138,13 +136,12 @@ namespace CFIT.SimConnectLib.Modules.MobiFlight
                 {
                     try { await ClearUnusedResources(true); } catch (Exception ex) { Logger.LogException(ex); }
                     RegisteredDataDefinitions.Clear();
+                    Manager.OnClientData -= OnClientData;
                     IsMobiConnected = false;
                     LastConnectionAttempt = DateTime.MinValue;
                     ClearLvarList();
                     Logger.Information($"MobiModule Connection closed.");
                 }
-
-                Manager.GetSimConnect().OnRecvClientData -= RecvClientDataEventHandler;
             }
         }
 
@@ -198,7 +195,7 @@ namespace CFIT.SimConnectLib.Modules.MobiFlight
             AreaClientCreated = true;
         }
 
-        protected virtual async void OnClientData(SimConnect sender, SIMCONNECT_RECV_CLIENT_DATA evtData)
+        protected virtual Task OnClientData(SIMCONNECT_RECV_CLIENT_DATA evtData)
         {
             try
             {
@@ -207,13 +204,13 @@ namespace CFIT.SimConnectLib.Modules.MobiFlight
 
                 if (evtData.dwRequestID == CLIENT_ID_MOBIMODULE && evtData?.dwData?.Length > 0)
                 {
-                    await OnModuleRequest((MobiMessage)evtData.dwData[0]);
+                    return OnModuleRequest((MobiMessage)evtData.dwData[0]);
                 }
                 else if (evtData.dwRequestID == CLIENT_ID_MOBICLIENT && evtData?.dwData?.Length > 0)
                 {
                     OnClientRequest((MobiMessage)evtData.dwData[0]);
                 }
-                else if (Resources.TryGetValue(evtData.dwRequestID, out MobiVar variable) && (evtData?.dwData[0] is MobiVarValue || evtData ?.dwData[0] is MobiStringValue))
+                else if (Resources.TryGetValue(evtData.dwRequestID, out MobiVar variable) && (evtData?.dwData[0] is MobiVarValue || evtData?.dwData[0] is MobiStringValue))
                 {
                     variable.SetValue(evtData.dwData[0]);
                 }
@@ -226,6 +223,8 @@ namespace CFIT.SimConnectLib.Modules.MobiFlight
             {
                 Logger.LogException(ex);
             }
+
+            return Task.CompletedTask;
         }
 
         protected virtual async Task OnModuleRequest(MobiMessage request)
@@ -286,7 +285,8 @@ namespace CFIT.SimConnectLib.Modules.MobiFlight
             }
             else if (!string.IsNullOrWhiteSpace(request.Data))
             {
-                Logger.Verbose($"Received L-Var: {request.Data}");
+                if (Manager.Config.VerboseLogging)
+                    Logger.Verbose($"Received L-Var: {request.Data}");
                 LvarList.Add(request.Data);
             }
         }
@@ -300,29 +300,31 @@ namespace CFIT.SimConnectLib.Modules.MobiFlight
                 await SendClientWasmDummyCmd();
         }
 
-        public virtual async Task SendClientWasmDummyCmd()
+        public virtual Task SendClientWasmDummyCmd()
         {
-            await SendWasmCmd(DATA_ID_CLIENT_CMD, CLIENT_ID_MOBICLIENT, "MF.DummyCmd");
+            return SendWasmCmd(DATA_ID_CLIENT_CMD, CLIENT_ID_MOBICLIENT, "MF.DummyCmd");
         }
 
-        public virtual async Task SendMobiWasmCmd(string command)
+        public virtual Task SendMobiWasmCmd(string command)
         {
-            await SendWasmCmd(DATA_ID_MOBIFLIGHT_CMD, CLIENT_ID_MOBIMODULE, command);
+            return SendWasmCmd(DATA_ID_MOBIFLIGHT_CMD, CLIENT_ID_MOBIMODULE, command);
         }
 
-        protected virtual async Task SendWasmCmd(Enum cmdChannelId, Enum cmdId, string command)
+        protected virtual Task SendWasmCmd(Enum cmdChannelId, Enum cmdId, string command)
         {
-            await Call(sc => sc.SetClientData(cmdChannelId, cmdId, SIMCONNECT_CLIENT_DATA_SET_FLAG.DEFAULT, 0, new MobiMessageBuffer(command)));
+            return Call(sc => sc.SetClientData(cmdChannelId, cmdId, SIMCONNECT_CLIENT_DATA_SET_FLAG.DEFAULT, 0, new MobiMessageBuffer(command)));
         }
 
-        public virtual async Task GetLvarList()
+        public virtual Task GetLvarList()
         {
             if (!RequestingList && IsMobiConnected)
             {
                 RequestingList = true;
                 Logger.Debug($"Requesting L-Var List");
-                await SendClientWasmCmd("MF.LVars.List");
+                return SendClientWasmCmd("MF.LVars.List");
             }
+            else
+                return Task.CompletedTask;
         }
 
         public virtual void ClearLvarList()
@@ -419,7 +421,7 @@ namespace CFIT.SimConnectLib.Modules.MobiFlight
 
                 foreach (var mobiVar in Resources)
                     await mobiVar.Value.Unregister(false);
-                
+
                 Resources.Clear();
                 IdStore.Reset();
                 StringVarIdStore.Reset();
@@ -427,9 +429,9 @@ namespace CFIT.SimConnectLib.Modules.MobiFlight
             }
         }
 
-        public virtual async Task SetVariable(string name, string type, string value)
+        public virtual Task SetVariable(string name, string type, string value)
         {
-            await SendClientWasmCmd($"MF.SimVars.Set.{MobiVar.GetWriteCode(name, type, value)}");
+            return SendClientWasmCmd($"MF.SimVars.Set.{MobiVar.GetWriteCode(name, type, value)}");
         }
 
         public virtual async Task<bool> ExecuteCode(string code)

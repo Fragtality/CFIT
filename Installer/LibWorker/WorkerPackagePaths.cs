@@ -11,9 +11,7 @@ namespace CFIT.Installer.LibWorker
 {
     public class WorkerPackagePaths<C> : TaskWorker<C> where C : ConfigBase
     {
-#pragma warning disable
         public List<Simulator> SearchSimulators { get; set; } = new List<Simulator>();
-#pragma warning restore
 
         public WorkerPackagePaths(C config, string title = "Package Paths", string message = "") : base(config, title, message)
         {
@@ -57,9 +55,8 @@ namespace CFIT.Installer.LibWorker
             }
         }
 
-        protected override async Task<bool> DoRun()
+        protected override Task<bool> DoRun()
         {
-            await Task.Delay(0);
             var packagePaths = new Dictionary<Simulator, string[]>();
             foreach (var sim in SearchSimulators)
                 CheckSim(sim, packagePaths);
@@ -68,12 +65,12 @@ namespace CFIT.Installer.LibWorker
             {
                 Config.SetOption(ConfigBase.OptionPackagePaths, packagePaths);
                 Model.SetSuccess($"Found {packagePaths.Sum(kv => kv.Value.Length)} Package Paths!");
-                return true;
+                return Task.FromResult(true);
             }
             else
             {
                 Model.SetError("No Package Paths found!");
-                return false;
+                return Task.FromResult(false);
             }
         }
     }

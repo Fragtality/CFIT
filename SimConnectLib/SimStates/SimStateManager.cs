@@ -13,7 +13,7 @@ namespace CFIT.SimConnectLib.SimStates
     {
         public virtual Dictionary<string, SimStateInfo> KnownStates { get; }
 
-        public SimStateManager(SimConnectManager manager, object moduleParams) : base(manager, moduleParams)
+        public SimStateManager(SimConnectManager manager, object moduleParams, bool wasRegisteredBefore) : base(manager, moduleParams, wasRegisteredBefore)
         {
             KnownStates = SimStateInfo.CreateStateInfo(IdStore);
         }
@@ -30,7 +30,7 @@ namespace CFIT.SimConnectLib.SimStates
             Manager.OnReceiveSystemState += Update;
         }
 
-        protected virtual void Update(SIMCONNECT_RECV evtData)
+        protected virtual Task Update(SIMCONNECT_RECV evtData)
         {
             if (evtData is SIMCONNECT_RECV_SYSTEM_STATE evtState)
                 Update(evtState.dwRequestID, evtData);
@@ -40,6 +40,8 @@ namespace CFIT.SimConnectLib.SimStates
                 Update(evtEvent.uEventID, evtData);
             else if (Manager.Config.VerboseLogging)
                 Logger.Verbose($"Received Event did not match - dwID {evtData?.dwID} Type {evtData?.GetType()?.Name}");
+
+            return Task.CompletedTask;
         }
 
         protected virtual void Update(uint id, SIMCONNECT_RECV evtData)

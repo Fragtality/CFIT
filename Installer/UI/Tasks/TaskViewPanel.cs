@@ -65,7 +65,7 @@ namespace CFIT.Installer.UI.Tasks
                     else
                         i++;
                 }
-                
+
                 TaskViewList[i].Disable(true);
                 TaskViewList.RemoveAt(i);
             }

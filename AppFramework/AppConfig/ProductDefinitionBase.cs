@@ -14,9 +14,10 @@ namespace CFIT.AppFramework.AppConfig
         public virtual string ProductTimestamp { get { return VersionTools.GetEntryAssemblyTimestamp(); } }
         public virtual string ProductVersionString { get { return $"{ProductVersion.ToString(3)}-{ProductTimestamp}"; } }
         public virtual string ProductAuthor { get { return "Fragtality"; } }
+        public virtual string ProductBranch { get { return "master"; } }
         public virtual string ProductGitApi { get { return $"https://api.github.com/repos/{ProductAuthor}/{ProductName}"; } }
-        public virtual bool ProductVersionCheckDev { get { return false; } }
-        public virtual string ProductDevVersionFile { get { return $"https://raw.githubusercontent.com/{ProductAuthor}/{ProductName}/refs/heads/master/Installer/Payload/version.json"; } }
+        public virtual string ProductVersionFileGit { get { return GetUrlGit("Installer/Payload/version.json"); } }
+        public virtual string ProductVersionFileCdn { get { return GetUrlCdn("Installer/Payload/version.json"); } }
         public virtual string ProductBinary { get { return ProductName; } }
         public virtual string ProductExe { get { return $"{ProductBinary}.exe"; } }
         public virtual string ProductPath { get { return $@"{Sys.FolderAppDataRoaming()}\{ProductName}"; } }
@@ -24,6 +25,32 @@ namespace CFIT.AppFramework.AppConfig
         public virtual string ProductConfigPath { get { return Path.Join(ProductPath, ProductConfigFile); } }
         public virtual string ProductExePath { get { return Path.Join(ProductPath, ProductExe); } }
         public virtual string ProductLogPath { get { return "log"; } }
+        public virtual string ProductInstallerLatest { get { return $"{ProductName}-Installer-latest.exe"; } }
+
+        public virtual string GetUrlInstaller()
+        {
+            return GetUrlGit(ProductInstallerLatest);
+        }
+
+        public virtual string GetUrlGit(string path, string branch = "master")
+        {
+            return GetUrlGit(path, ProductAuthor, ProductName, branch);
+        }
+
+        public static string GetUrlGit(string path, string author, string product, string branch)
+        {
+            return $"https://raw.githubusercontent.com/{author}/{product}/refs/heads/{branch}/{path}";
+        }
+
+        public virtual string GetUrlCdn(string path, string branch = "master")
+        {
+            return GetUrlCdn(path, ProductAuthor, ProductName, branch);
+        }
+
+        public static string GetUrlCdn(string path, string author, string product, string branch)
+        {
+            return $"https://cdn.jsdelivr.net/gh/{author}/{product}@{branch}/{path}";
+        }
 
         //Behaviors
         public virtual bool MainWindowShowOnStartup { get { return true; } }

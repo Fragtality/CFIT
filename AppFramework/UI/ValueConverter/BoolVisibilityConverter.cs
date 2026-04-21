@@ -25,4 +25,23 @@ namespace CFIT.AppFramework.UI.ValueConverter
                 return value;
         }
     }
+
+    public class BoolVisibilityInverseConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is bool visibility && targetType == typeof(Visibility))
+                return visibility ? Visibility.Collapsed : Visibility.Visible;
+            else
+                return value;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is Visibility visibility && targetType == typeof(bool))
+                return visibility == Visibility.Collapsed;
+            else
+                return value;
+        }
+    }
 }

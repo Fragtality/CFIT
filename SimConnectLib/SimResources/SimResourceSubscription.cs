@@ -11,11 +11,11 @@ namespace CFIT.SimConnectLib.SimResources
         public string Name { get; }
         public bool IsInternal { get; }
         public MappedID Id { get; }
-        public event Action<ISimResourceSubscription, object> OnReceived;
+        public event Func<ISimResourceSubscription, object, Task> OnReceived;
         public bool IsChanged { get; }
         public bool IsActive { get; }
-        public void Subscribe();
-        public void Unsubscribe();
+        public Task Subscribe();
+        public Task Unsubscribe();
         public T GetValue<T>();
         public double GetNumber();
         public string GetString();
@@ -36,7 +36,7 @@ namespace CFIT.SimConnectLib.SimResources
         public virtual MappedID Id { get { return Resource.Id; } }
         protected virtual TManager Manager { get { return Resource.Manager; } }
         public virtual bool IsChanged { get; protected set; }
-        public event Action<ISimResourceSubscription, object> OnReceived;
+        public event Func<ISimResourceSubscription, object, Task> OnReceived;
         public virtual bool ResetOnRead { get; set; } = true;
         public virtual bool ResetOnCallback { get; set; } = true;
         protected virtual object LastValue { get; set; }
@@ -47,7 +47,7 @@ namespace CFIT.SimConnectLib.SimResources
         public SimResourceSubscription(TResource resource)
         {
             Resource = resource;
-            Resource.Subscribe(this);
+            _ = Resource.Subscribe(this);
         }
 
         public virtual T GetValue<T>()
@@ -135,7 +135,7 @@ namespace CFIT.SimConnectLib.SimResources
             }
         }
 
-        public virtual void Subscribe()
+        public virtual async Task Subscribe()
         {
             if (Resource == null)
             {
@@ -144,26 +144,26 @@ namespace CFIT.SimConnectLib.SimResources
             }
 
             if (!IsSubscribed)
-                Resource.Subscribe(this);
+                await Resource.Subscribe(this);
 
             if (!Resource.IsRegistered)
-                Resource.Register();
+                await Resource.Register();
         }
 
-        public virtual void Unsubscribe()
+        public virtual Task Unsubscribe()
         {
             IsSubscribed = false;
-            Manager.Unsubscribe(this as TSubscription);
+            return Manager.Unsubscribe(this as TSubscription);
         }
 
-        public virtual async Task<bool> WriteValue(object value)
+        public virtual Task<bool> WriteValue(object value)
         {
-            return await Resource.WriteValue(value);
+            return Resource.WriteValue(value);
         }
 
-        public virtual async Task<bool> WriteValues(object[] values)
+        public virtual Task<bool> WriteValues(object[] values)
         {
-            return await Resource.WriteValues(values);
+            return Resource.WriteValues(values);
         }
 
         public override string ToString()
@@ -178,7 +178,7 @@ namespace CFIT.SimConnectLib.SimResources
                 if (disposing)
                 {
                     if (IsSubscribed)
-                        Unsubscribe();
+                        _ = Unsubscribe();
                 }
                 IsDisposed = true;
             }
@@ -188,6 +188,24 @@ namespace CFIT.SimConnectLib.SimResources
         {
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
+        }
+    }
+
+    public class SimResourceSubCallback
+    {
+        public virtual ISimResourceSubscription Subscription { get; }
+        public virtual Func<ISimResourceSubscription, object, Task> CallbackHandler { get; }
+
+        public SimResourceSubCallback(ISimResourceSubscription sub, Func<ISimResourceSubscription, object, Task> callbackHandler)
+        {
+            Subscription = sub;
+            CallbackHandler = callbackHandler;
+            Subscription?.OnReceived += CallbackHandler;
+        }
+
+        public virtual void Unsubscribe()
+        {
+            Subscription?.OnReceived -= CallbackHandler;
         }
     }
 }

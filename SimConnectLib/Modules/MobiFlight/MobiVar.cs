@@ -29,7 +29,7 @@ namespace CFIT.SimConnectLib.Modules.MobiFlight
 
         public MobiVar(string name, MappedID id, uint offset, MobiModule manager) : this(name, id, offset, new SimUnitType(SimUnitType.Number), manager)
         {
-            
+
         }
 
         public static string NameNormalized(string name, string type = "number")

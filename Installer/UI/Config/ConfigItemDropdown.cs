@@ -29,7 +29,7 @@ namespace CFIT.Installer.UI.Config
                 };
 
                 if (!string.IsNullOrWhiteSpace(Text))
-                    Panel.Children.Add(new TextBlock() { Text = this.Text, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0,0,8,0) });
+                    Panel.Children.Add(new TextBlock() { Text = this.Text, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
 
                 DropDown = new ComboBox()
                 {
@@ -44,7 +44,7 @@ namespace CFIT.Installer.UI.Config
                         Content = option.Value,
                     };
                     DropDown.Items.Add(item);
-                }                
+                }
 
                 SetValueElement();
                 DropDown.SelectionChanged += SetValueConfig;

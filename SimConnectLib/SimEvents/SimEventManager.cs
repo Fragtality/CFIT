@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace CFIT.SimConnectLib.SimEvents
 {
-    public class SimEventManager(SimConnectManager manager, object moduleParams) : SimResourceManager<SimEventManager, SimEvent, SimEventSubscription>(manager, moduleParams)
+    public class SimEventManager(SimConnectManager manager, object moduleParams, bool wasRegisteredBefore) : SimResourceManager<SimEventManager, SimEvent, SimEventSubscription>(manager, moduleParams, wasRegisteredBefore)
     {
         public virtual MappedID EVENT_GROUP_SUBSCRIBED { get; } = new(1);
         public virtual MappedID EVENT_GROUP_COMMAND { get; } = new(2);
@@ -26,7 +26,7 @@ namespace CFIT.SimConnectLib.SimEvents
             Manager.OnReceiveEventEx1 += Update;
         }
 
-        protected virtual void Update(SIMCONNECT_RECV evt)
+        protected virtual Task Update(SIMCONNECT_RECV evt)
         {
             if (evt is SIMCONNECT_RECV_EVENT evtData && (evtData.uGroupID == EVENT_GROUP_SUBSCRIBED || evtData.uGroupID == EVENT_GROUP_COMMAND))
                 UpdateId(evtData.uEventID, evtData.dwData);
@@ -43,6 +43,8 @@ namespace CFIT.SimConnectLib.SimEvents
             }
             else
                 Logger.Debug($"Received Event had wrong Type - dwID {evt?.dwID} Type {evt?.GetType()?.Name}");
+
+            return Task.CompletedTask;
         }
 
         protected virtual void UpdateId(uint id, params object[] values)

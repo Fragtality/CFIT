@@ -20,7 +20,7 @@ namespace CFIT.Installer.UI.Behavior
 
         public WindowBehavior()
         {
-            
+
         }
 
         public virtual Func<InstallerWindow, string> FuncGetTitle { get; set; } = (w) =>

@@ -76,15 +76,15 @@ namespace CFIT.SimConnectLib.SimEvents
             }
         }
 
-        public override async Task<bool> WriteValue(object value)
+        public override Task<bool> WriteValue(object value)
         {
-            return await WriteValues([value]);
+            return WriteValues([value]);
         }
 
-        public override async Task<bool> WriteValues(object[] values)
+        public override Task<bool> WriteValues(object[] values)
         {
             SetValues(values);
-            return await Write();
+            return Write();
         }
 
         protected virtual async Task<bool> Write()
@@ -97,7 +97,8 @@ namespace CFIT.SimConnectLib.SimEvents
                     return false;
                 }
 
-                Logger.Verbose($"Writing to Event '{Name}' - Values: {string.Join(',', EventValues)}");
+                if (Manager.Manager.Config.VerboseLogging)
+                    Logger.Verbose($"Writing to Event '{Name}' - Values: {string.Join(',', EventValues)}");
                 await _lock.WaitAsync();
                 if (HasMultipleParams)
                     await Call(sc => sc.TransmitClientEvent_EX1(SimConnect.SIMCONNECT_OBJECT_ID_USER, Id, GroupId, SIMCONNECT_EVENT_FLAG.DEFAULT,

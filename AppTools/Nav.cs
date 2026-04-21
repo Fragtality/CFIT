@@ -28,9 +28,7 @@ namespace CFIT.AppTools
             OpenUri(sender, e);
         }
 
-#pragma warning disable IDE0060
         public static void OpenUri(object sender, RequestNavigateEventArgs e, string directory = null)
-#pragma warning restore IDE0060
         {
             if (!e.Uri.ToString().Contains(".exe"))
                 Process.Start(new ProcessStartInfo(e.Uri.ToString()) { UseShellExecute = true });

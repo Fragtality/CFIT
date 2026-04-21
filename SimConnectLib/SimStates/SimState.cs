@@ -25,22 +25,24 @@ namespace CFIT.SimConnectLib.SimStates
             IsRegistered = true;
         }
 
-        public override async Task Request()
+        public override Task Request()
         {
             if (UpdateType == SimStateUpdate.SUBSCRIBE)
             {
                 Logger.Warning($"Can not request Value for State '{Name}'");
-                return;
+                return Task.CompletedTask;
             }
 
             try
             {
-                await Call(sc => sc.RequestSystemState(Id, Name));
+                return Call(sc => sc.RequestSystemState(Id, Name));
             }
             catch (Exception ex)
             {
                 Logger.LogException(ex);
             }
+
+            return Task.CompletedTask;
         }
 
         public override async Task Unregister(bool disconnect)

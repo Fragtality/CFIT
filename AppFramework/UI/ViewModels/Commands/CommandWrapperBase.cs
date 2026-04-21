@@ -3,15 +3,19 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 
 namespace CFIT.AppFramework.UI.ViewModels.Commands
 {
-    public interface ICommandWrapper : ICommand
+    public interface ICommandWrapper : ICommand, INotifyPropertyChanged
     {
         public event Action Executed;
+
+        public bool IsCanExecute { get; }
+        public bool IsExecuting { get; }
 
         public ICommandWrapper Bind(object element, MouseAction mouseAction = MouseAction.LeftClick);
         public ICommandWrapper Subscribe(object @object, string propertyName);
@@ -23,6 +27,10 @@ namespace CFIT.AppFramework.UI.ViewModels.Commands
     {
         public event EventHandler? CanExecuteChanged;
         public event Action Executed;
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        public virtual bool IsCanExecute { get; protected set; } = false;
+        public virtual bool IsExecuting { get; protected set; } = false;
 
         public virtual ICommandWrapper Bind(object element, MouseAction mouseAction = MouseAction.LeftClick)
         {
@@ -73,12 +81,15 @@ namespace CFIT.AppFramework.UI.ViewModels.Commands
         {
             try
             {
-                return CheckCanExecute(parameter);
+                IsCanExecute = CheckCanExecute(parameter);
             }
             catch
             {
-                return false;
+                IsCanExecute = false;
             }
+
+            NotifyPropertyChanged(nameof(IsCanExecute));
+            return IsCanExecute;
         }
 
         protected abstract bool CheckCanExecute(object? parameter);
@@ -95,16 +106,26 @@ namespace CFIT.AppFramework.UI.ViewModels.Commands
 
         public virtual void Execute(object? parameter)
         {
+            IsExecuting = true;
+            NotifyPropertyChanged(nameof(IsExecuting));
             try
             {
                 DoExecute(parameter);
+                NotifyExecuted();
             }
             catch (Exception ex)
             {
                 Logger.LogException(ex);
             }
+            IsExecuting = false;
+            NotifyPropertyChanged(nameof(IsExecuting));
         }
 
-        protected abstract void DoExecute(object? parameter);
+        protected abstract Task DoExecute(object? parameter);
+
+        protected virtual void NotifyPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
     }
 }

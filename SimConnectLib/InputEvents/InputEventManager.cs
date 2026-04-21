@@ -28,7 +28,7 @@ namespace CFIT.SimConnectLib.InputEvents
         protected virtual SimConnect.RecvGetInputEventEventHandler RecvGetInputEventEventHandler { get; set; }
         protected virtual SimConnect.RecvSubscribeInputEventEventHandler RecvSubscribeInputEventEventHandler { get; set; }
 
-        public InputEventManager(SimConnectManager manager, object moduleParams) : base(manager, moduleParams)
+        public InputEventManager(SimConnectManager manager, object moduleParams, bool wasRegisteredBefore) : base(manager, moduleParams, wasRegisteredBefore)
         {
             RecvEnumerateInputEventsEventHandler = new SimConnect.RecvEnumerateInputEventsEventHandler(OnRecvEnumerateInputEvents);
             RecvGetInputEventEventHandler = new SimConnect.RecvGetInputEventEventHandler(OnRecvGetInputEvents);
@@ -131,7 +131,7 @@ namespace CFIT.SimConnectLib.InputEvents
 
                     HasEventsEnumerated = true;
                     IsEnumerating = false;
-                    _ = TaskTools.RunLogged(() => { CallbackEventsEnumerated?.Invoke(this, true); }, Manager.Token);
+                    _ = TaskTools.RunPool(() => CallbackEventsEnumerated?.Invoke(this, true), Manager.Token);
                 }
                 else
                     Logger.Debug($"Received Event did not match - dwID {evtData?.dwID} dwRequestID {evtData?.dwRequestID}");
@@ -177,7 +177,7 @@ namespace CFIT.SimConnectLib.InputEvents
             }
         }
 
-        protected virtual void OnSimConnectException(SIMCONNECT_RECV_EXCEPTION obj)
+        protected virtual Task OnSimConnectException(SIMCONNECT_RECV_EXCEPTION obj)
         {
             if (obj?.dwException == 1 && obj?.dwID == 1 && obj?.dwIndex == 4294967295)
             {
@@ -191,6 +191,8 @@ namespace CFIT.SimConnectLib.InputEvents
                     HasEventsEnumerated = true;
                 }
             }
+
+            return Task.CompletedTask;
         }
 
         protected async Task EnumerateInputEvents()
@@ -204,7 +206,7 @@ namespace CFIT.SimConnectLib.InputEvents
             if (FirstEnumeration || EnumerationAttempts > 0)
                 await Task.Delay(Manager.Config.InputEventScanDelay, Manager.Token);
 
-            _ = Call(sc => sc.EnumerateInputEvents(EnumRequestID));
+            await Call(sc => sc.EnumerateInputEvents(EnumRequestID));
             FirstEnumeration = false;
         }
 
@@ -240,7 +242,7 @@ namespace CFIT.SimConnectLib.InputEvents
             else if (HasEventsEnumerated && Manager.IsSessionStopped)
             {
                 await ClearInputEvents();
-                await TaskTools.RunLogged(() => { CallbackEventsEnumerated?.Invoke(this, false); }, Manager.Token);
+                _ = TaskTools.RunPool(() => CallbackEventsEnumerated?.Invoke(this, false), Manager.Token);
             }
         }
 
@@ -294,15 +296,15 @@ namespace CFIT.SimConnectLib.InputEvents
                 await ClearInputEvents();
         }
 
-        public virtual async Task<bool> SendEvent(string name, double value)
+        public virtual Task<bool> SendEvent(string name, double value)
         {
             if (!IsNameEnumerated(name, out ulong hash))
             {
                 Logger.Warning($"The Name '{name}' is not enumerated!");
-                return false;
+                return Task.FromResult(false);
             }
 
-            return await Call(sc => sc.SetInputEvent(hash, value));
+            return Call(sc => sc.SetInputEvent(hash, value));
         }
     }
 }

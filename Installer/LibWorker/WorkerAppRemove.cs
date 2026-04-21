@@ -47,10 +47,8 @@ namespace CFIT.Installer.LibWorker
             return !Directory.Exists(InstallerRemoveDir);
         }
 
-        protected override async Task<bool> DoRun()
+        protected override Task<bool> DoRun()
         {
-            await Task.Delay(0);
-
             Logger.Debug("Running PreRemoval() ...");
             PreRemoval();
 
@@ -63,10 +61,10 @@ namespace CFIT.Installer.LibWorker
             if (CheckSuccess())
             {
                 Model.SetSuccess(InstallerRemoveMsg);
-                return true;
+                return Task.FromResult(true);
             }
             else
-                return false;
+                return Task.FromResult(false);
         }
     }
 }

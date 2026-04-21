@@ -151,7 +151,7 @@ namespace CFIT.Installer.UI.Behavior
         protected override void SetButtons()
         {
             SetLeftButton();
-            SetRightButton();            
+            SetRightButton();
         }
 
         protected virtual string GetRemoveText()
@@ -178,7 +178,7 @@ namespace CFIT.Installer.UI.Behavior
         protected override void SetActions()
         {
             SetLeftAction();
-            SetRightAction();            
+            SetRightAction();
         }
 
         protected virtual void SetLeftAction()

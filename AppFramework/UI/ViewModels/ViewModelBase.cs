@@ -6,6 +6,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -37,7 +38,7 @@ namespace CFIT.AppFramework.UI.ViewModels
 
         public virtual void NotifyModelUpdated()
         {
-            ModelUpdated?.Invoke(Source);
+            ModelHelper.RunOnDispatcher(() => ModelUpdated?.Invoke(Source));
         }
 
         public virtual T GetSourceValue<T>([CallerMemberName] string propertyName = null!)
@@ -96,9 +97,20 @@ namespace CFIT.AppFramework.UI.ViewModels
                 SetSourceValue<T>(value, null, null, propertyName);
         }
 
+        public virtual void SetObservedProperty<T>(string propertyName, T value)
+        {
+            ModelHelper.RunOnDispatcher(() => this.SetPropertyValue(propertyName, value));
+        }
+
         public virtual void NotifyPropertyChanged(string propertyName)
         {
-            OnPropertyChanged(propertyName);
+            ModelHelper.RunOnDispatcher(() => OnPropertyChanged(propertyName));
+        }
+
+        public virtual Task RunOnDispatcher(Action action)
+        {
+            ModelHelper.RunOnDispatcher(action);
+            return Task.CompletedTask;
         }
 
         public virtual void SubscribeProperty(string propertyName, Action callback)

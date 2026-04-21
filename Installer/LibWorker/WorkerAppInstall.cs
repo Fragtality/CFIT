@@ -130,14 +130,13 @@ namespace CFIT.Installer.LibWorker
             return result;
         }
 
-        protected override async Task<bool> DoRun()
+        protected override Task<bool> DoRun()
         {
             bool deleteSuccess;
             bool extractSuccess;
             bool configSuccess;
             bool finalizeSuccess;
             bool versionSuccess;
-            await Task.Delay(0);
 
             if (Config.Mode == SetupMode.UPDATE && InstallerDeleteOnUpdate && !Token.IsCancellationRequested)
             {
@@ -184,12 +183,12 @@ namespace CFIT.Installer.LibWorker
                 Model.SetSuccess(InstallerSuccessMsg, false, FontWeights.DemiBold);
                 if (InstallerSummaryPath && Config.Mode == SetupMode.INSTALL)
                     Model.AddMessage(new TaskMessage(Config.ProductPath, true), false, false);
-                return true;
+                return Task.FromResult(true);
             }
             else
             {
                 Logger.Debug($"Failed! (delete {deleteSuccess} | extract {extractSuccess} | config {configSuccess} | finalize {finalizeSuccess} | version {versionSuccess})");
-                return false;
+                return Task.FromResult(false);
             }
         }
     }

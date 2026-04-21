@@ -86,7 +86,7 @@ namespace CFIT.Installer.UI
                     GridMain.Children.Add(behavior.ContentRef);
                 }
                 CurrentPage = behavior;
-            }            
+            }
         }
 
         private void ButtonLeft_Click(object sender, RoutedEventArgs e)

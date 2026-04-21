@@ -23,14 +23,14 @@ namespace CFIT.SimConnectLib.SimResources
         public virtual ConcurrentDictionary<uint, TResource> Resources { get; } = [];
         protected virtual ConcurrentDictionary<uint, bool> RegisteredDataDefinitions { get; } = [];
 
-        public SimResourceManager(SimConnectManager manager, object moduleParams) : base(manager, moduleParams)
+        public SimResourceManager(SimConnectManager manager, object moduleParams, bool wasRegisteredBefore) : base(manager, moduleParams, wasRegisteredBefore)
         {
             IdStore = AllocateStore();
         }
 
         protected override void SetModuleParams(object moduleParams)
         {
-            
+
         }
 
         protected abstract MappedIdStore AllocateStore();
@@ -77,12 +77,12 @@ namespace CFIT.SimConnectLib.SimResources
 
         public abstract TSubscription Subscribe(string name, bool isInternal);
 
-        public virtual void Unsubscribe(TSubscription subscription)
+        public virtual Task Unsubscribe(TSubscription subscription)
         {
             if (!GetResource(subscription.Resource.Id, out TResource resource))
-                return;
+                return Task.CompletedTask;
 
-            resource.Unsubscribe(subscription);
+            return resource.Unsubscribe(subscription);
         }
 
         public override async Task<int> CheckResources()
@@ -114,7 +114,7 @@ namespace CFIT.SimConnectLib.SimResources
                 return true;
             }
             else
-                return false;            
+                return false;
         }
 
         public virtual bool ClearDataDefinition(MappedID id)

@@ -20,9 +20,7 @@ namespace CFIT.Installer.Product
         public virtual ConfigBase BaseConfig { get; protected set; }
         public virtual WorkerManagerBase BaseWorker { get; protected set; }
         public virtual WindowBehavior BaseBehavior { get; protected set; }
-#pragma warning disable
         public virtual Dictionary<InstallerPages, IPageBehavior> PageBehaviors { get; protected set; } = new Dictionary<InstallerPages, IPageBehavior>();
-#pragma warning restore
         public virtual bool IsProductInstalled { get { return CheckExistingInstallation(); } }
         public virtual bool IsRunning { get { return CheckIsRunning(); } }
         public virtual ProductVersion AppVersion { get; protected set; } = null;
@@ -100,7 +98,7 @@ namespace CFIT.Installer.Product
 
         protected virtual void CreatePageConfig()
         {
-            
+
         }
 
         protected virtual void CreatePageSetup()

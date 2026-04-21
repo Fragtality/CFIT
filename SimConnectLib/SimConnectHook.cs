@@ -111,7 +111,8 @@ namespace CFIT.SimConnectLib
                     {
                         Logger.Information($"Open SimConnect ...");
                         Manager.SetSimConnect(new SimConnect(Manager.Config.ClientName, WindowHandle, (uint)MsgSimConnect, null, 0));
-                        Logger.Verbose($"SimConnect Object created");
+                        if (Manager.Config.VerboseLogging)
+                            Logger.Verbose($"SimConnect Object created");
                     }
                 }
                 catch (Exception ex)

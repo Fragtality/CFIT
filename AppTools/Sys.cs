@@ -35,9 +35,7 @@ namespace CFIT.AppTools
 
             for (int i = 0; i < args.Length; i++)
             {
-#pragma warning disable
-                if (args[i].ToLowerInvariant() == arg.ToLowerInvariant())
-#pragma warning restore
+                if (args[i].Equals(arg, StringComparison.InvariantCultureIgnoreCase))
                 {
                     if (i + 1 < args.Length && !args[i + 1].StartsWith("--"))
                     {
@@ -150,7 +148,6 @@ namespace CFIT.AppTools
         public const uint WM_DESTROY = 0x0002;
         public const uint WM_QUIT = 0x0012;
 
-#pragma warning disable
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool SetForegroundWindow(IntPtr hWnd);
@@ -168,7 +165,6 @@ namespace CFIT.AppTools
         static extern IntPtr GetForegroundWindow();
         [DllImport("user32.dll")]
         static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int count);
-#pragma warning restore
         public static string GetActiveWindowTitle()
         {
             const int nChars = 256;

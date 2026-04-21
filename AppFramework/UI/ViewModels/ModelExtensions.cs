@@ -134,7 +134,8 @@ namespace CFIT.AppFramework.UI.ViewModels
 
         public static void UpdateBindingOnEnter(this TextBox textBox)
         {
-            textBox.KeyUp += (sender, e) => {
+            textBox.KeyUp += (sender, e) =>
+            {
                 if (Sys.IsEnter(e))
                     UpdateBindingTextSource(sender);
             };
@@ -144,6 +145,18 @@ namespace CFIT.AppFramework.UI.ViewModels
         {
             textBox.LostFocus += (sender, _) => UpdateBindingTextSource(sender);
             textBox.LostKeyboardFocus += (sender, _) => UpdateBindingTextSource(sender);
+        }
+
+        public static void UpdateSelectorOnLostFocus<Tin, Tout>(this TextBox textBox, ViewModelSelector<Tin, Tout> selector)
+        {
+            textBox.LostFocus += (_, e) => UpdateSelector(selector);
+            textBox.LostKeyboardFocus += (_, e) => UpdateSelector(selector);
+        }
+
+        public static void UpdateSelector<Tin, Tout>(ViewModelSelector<Tin, Tout> selector)
+        {
+            if (selector != null && !selector.AddUpdateCommand.IsExecuting && selector.SelectedItem is Tin item)
+                selector.AddUpdateCommand.Execute(item);
         }
 
         public static void UpdateBindingTextSource(object textBox)

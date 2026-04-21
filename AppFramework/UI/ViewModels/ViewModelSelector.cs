@@ -30,7 +30,9 @@ namespace CFIT.AppFramework.UI.ViewModels
         public event Action ClearInputs;
         public event Action OnSelectionChanging;
         public event Action OnSelectionChanged;
+        public virtual bool ClearOnAddUpdate { get; set; } = true;
         public virtual bool IsClearing { get; protected set; } = false;
+        public virtual bool IsChanging { get; protected set; } = false;
         public virtual Selector SelectorElement { get; }
         public virtual bool HasSelection => SelectorElement?.SelectedIndex >= 0 && !IsClearing;
         protected virtual UiIconLoader IconLoader { get; set; }
@@ -47,7 +49,7 @@ namespace CFIT.AppFramework.UI.ViewModels
         [NotifyPropertyChangedFor(nameof(HasSelection))]
         [NotifyPropertyChangedFor(nameof(IsUpdating))]
         [NotifyPropertyChangedFor(nameof(ImageSource))]
-        protected Tin _SelectedItem = default;
+        public partial Tin SelectedItem { get; set; } = default;
         public virtual Tout SelectedDisplayItem => Transformator(SelectedItem);
         public virtual int SelectedIndex => SelectorElement?.SelectedIndex ?? -1;
         public virtual bool IsUpdating => ItemsSource.UpdatesAllowed && HasSelection;
@@ -55,7 +57,7 @@ namespace CFIT.AppFramework.UI.ViewModels
         public ViewModelSelector(Selector selector, ViewModelCollection<Tin, Tout> source)
                : this(selector, source, new(Assembly.GetExecutingAssembly(), IconLoadSource.Embedded, "CFIT.AppFramework.UI.Icons."))
         {
-            
+
         }
 
         public ViewModelSelector(Selector selector, ViewModelCollection<Tin, Tout> source, UiIconLoader loader)
@@ -73,19 +75,38 @@ namespace CFIT.AppFramework.UI.ViewModels
         public virtual void SetIconLoader(UiIconLoader loader)
         {
             IconLoader = loader;
-            ImageAdd = IconLoader.LoadIcon("add");
+            ImageAdd = ItemsSource.AddAllowed ? IconLoader.LoadIcon("add") : IconLoader.LoadIcon("edit");
             ImageEdit = IconLoader.LoadIcon("edit");
         }
 
         protected virtual void SelfPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName == nameof(SelectedItem))
+            {
                 NotifyCanExecuteChanged();
+                FindSetSelectedItem();
+            }
+        }
+
+        public virtual void FindSetSelectedItem()
+        {
+            if (!IsChanging)
+            {
+                int i = 0;
+                foreach (var item in Source)
+                {
+                    if ((object)item == (object)SelectedItem)
+                        break;
+                    i++;
+                }
+                SetSelectedIndex(i);
+            }
         }
 
         protected virtual void SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             try { OnSelectionChanging?.Invoke(); } catch { }
+            IsChanging = true;
 
             if (SelectorElement != null)
             {
@@ -108,12 +129,14 @@ namespace CFIT.AppFramework.UI.ViewModels
                 }
             }
 
+            IsChanging = false;
             try { OnSelectionChanged?.Invoke(); } catch { }
         }
 
         public virtual void SetSelectedIndex(int index)
         {
-            SelectorElement.SelectedIndex = index;
+            if (SelectorElement.SelectedIndex != index)
+                SelectorElement.SelectedIndex = index;
         }
 
         public virtual void ClearSelection()
@@ -192,8 +215,9 @@ namespace CFIT.AppFramework.UI.ViewModels
                     if (IsUpdating && ItemsSource.UpdatesAllowed)
                         ItemsSource.Update(SelectedItem, item);
                     else if (containedCheck && ItemsSource.AddAllowed)
-                        ItemsSource.Add(item);    
-                    ClearSelection();
+                        ItemsSource.Add(item);
+                    if (ClearOnAddUpdate)
+                        ClearSelection();
                 }
             }, CreateAddCanExecute(getItem, canExecute));
 
@@ -231,9 +255,9 @@ namespace CFIT.AppFramework.UI.ViewModels
             {
                 if ((func() && !AskConfirmation) || (AskConfirmation && func() && ConfirmationFunc?.Invoke() == true))
                 {
-                    ItemsSource.Remove(SelectedItem);
                     SelectorElement.SelectedIndex = -1;
                     ClearInputs?.Invoke();
+                    ItemsSource.Remove(SelectedItem);
                     NotifyCanExecuteChanged();
                 }
             }, func);
@@ -286,7 +310,7 @@ namespace CFIT.AppFramework.UI.ViewModels
             else if (defaultValue != null)
                 this.ClearInputs += () => binding.SetValueOut(defaultValue);
 
-                SubscribeElement(frameworkElement);
+            SubscribeElement(frameworkElement);
         }
 
         public virtual void BindTextElement(FrameworkElement frameworkElement, string memberPath = null, string defaultValue = "", IValueConverter converter = null, bool mapAddEnter = false, bool noUpdate = false)

@@ -46,12 +46,14 @@ namespace CFIT.AppTools
             return dictionary.TryRemove(value, out _);
         }
 
-        public static void AddOrUpdate<K,V>(this Dictionary<K, V> dictionary, K key, V value)
+        public static void AddOrUpdate<K, V>(this Dictionary<K, V> dictionary, K key, V value)
         {
+#pragma warning disable
             if (dictionary.ContainsKey(key))
                 dictionary[key] = value;
             else
                 dictionary.Add(key, value);
+#pragma warning enable
         }
     }
 }

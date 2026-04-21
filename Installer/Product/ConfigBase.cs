@@ -37,9 +37,7 @@ namespace CFIT.Installer.Product
         public virtual bool HasConfigFile { get { return CheckExistingConfigFile(); } }
 
         public virtual SetupMode Mode { get; set; }
-#pragma warning disable
         public virtual Dictionary<string, object> OptionStore { get; } = new Dictionary<string, object>();
-#pragma warning restore
 
         public ConfigBase()
         {

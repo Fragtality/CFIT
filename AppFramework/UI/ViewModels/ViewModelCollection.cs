@@ -68,14 +68,28 @@ namespace CFIT.AppFramework.UI.ViewModels
 
         public virtual void SetItemTransformator(Func<Tin, Tout> transformator)
         {
-            Transformator = transformator;
+            try
+            {
+                Transformator = transformator;
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"{ex.GetType().Name}: {ex.Message}");
+            }
             NotifyCollectionChanged();
         }
 
         public virtual void NotifyCollectionChanged(NotifyCollectionChangedEventArgs e = null)
         {
-            e ??= new(NotifyCollectionChangedAction.Reset);
-            CollectionChanged?.Invoke(this, e);
+            try
+            {
+                e ??= new(NotifyCollectionChangedAction.Reset);
+                CollectionChanged?.Invoke(this, e);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"{ex.GetType().Name}: {ex.Message}");
+            }
         }
 
         public virtual Tin BuildItemFromBindings()

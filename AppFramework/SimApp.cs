@@ -265,8 +265,13 @@ namespace CFIT.AppFramework
                 {
                     Timeout = TimeSpan.FromSeconds(10),
                 };
-                string url = $"{Definition.ProductVersionFileCdn}?{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
-                Logger.Debug($"Fetch version File from: {url}");
+                client.DefaultRequestHeaders.Accept.Clear();
+                client.DefaultRequestHeaders.Add("User-Agent", ".NET Foundation Repository Reporter");
+
+                string commit = await Definition.GetLatestCommit(client, Definition.ProductVersionFile);
+                Logger.Debug($"Latest commit: {commit}");
+                string url = Definition.GetUrlCommit(Definition.ProductVersionFile, commit);
+                Logger.Verbose($"Fetch version File from: {url}");
                 string json = await client.GetStringAsync(url);
                 Logger.Verbose($"json received: len {json?.Length}");
                 JsonNode node = JsonSerializer.Deserialize<JsonNode>(json);

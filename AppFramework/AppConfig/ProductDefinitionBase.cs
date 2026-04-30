@@ -3,6 +3,9 @@ using CFIT.AppTools;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net.Http;
+using System.Text.Json.Nodes;
+using System.Threading.Tasks;
 
 namespace CFIT.AppFramework.AppConfig
 {
@@ -16,8 +19,8 @@ namespace CFIT.AppFramework.AppConfig
         public virtual string ProductAuthor { get { return "Fragtality"; } }
         public virtual string ProductBranch { get { return "master"; } }
         public virtual string ProductGitApi { get { return $"https://api.github.com/repos/{ProductAuthor}/{ProductName}"; } }
-        public virtual string ProductVersionFileGit { get { return GetUrlGit("Installer/Payload/version.json"); } }
-        public virtual string ProductVersionFileCdn { get { return GetUrlCdn("Installer/Payload/version.json"); } }
+        public virtual string ProductLatestUrl { get { return GetGitUrl(ProductAuthor, ProductName); } }
+        public virtual string ProductVersionFile { get { return "Installer/Payload/version.json"; } }
         public virtual string ProductBinary { get { return ProductName; } }
         public virtual string ProductExe { get { return $"{ProductBinary}.exe"; } }
         public virtual string ProductPath { get { return $@"{Sys.FolderAppDataRoaming()}\{ProductName}"; } }
@@ -27,29 +30,56 @@ namespace CFIT.AppFramework.AppConfig
         public virtual string ProductLogPath { get { return "log"; } }
         public virtual string ProductInstallerLatest { get { return $"{ProductName}-Installer-latest.exe"; } }
 
-        public virtual string GetUrlInstaller()
+        public static string GetGitUrl(string author, string repo)
         {
-            return GetUrlGit(ProductInstallerLatest);
+            return $"https://github.com/{author}/{repo}/releases/latest";
         }
 
-        public virtual string GetUrlGit(string path, string branch = "master")
+        public static string GetGitApi(string author, string repo)
         {
-            return GetUrlGit(path, ProductAuthor, ProductName, branch);
+            return $"https://api.github.com/repos/{author}/{repo}";
         }
 
-        public static string GetUrlGit(string path, string author, string product, string branch)
+        public virtual string GetUrlGitBranch(string path)
+        {
+            return GetUrlGitBranch(path, ProductAuthor, ProductName, ProductBranch);
+        }
+
+        public static string GetUrlGitBranch(string path, string author, string product, string branch)
         {
             return $"https://raw.githubusercontent.com/{author}/{product}/refs/heads/{branch}/{path}";
         }
 
-        public virtual string GetUrlCdn(string path, string branch = "master")
+        public virtual string GetUrlCommit(string path, string commit)
         {
-            return GetUrlCdn(path, ProductAuthor, ProductName, branch);
+            return GetUrlCommit(path, ProductAuthor, ProductName, commit);
         }
 
-        public static string GetUrlCdn(string path, string author, string product, string branch)
+        public static string GetUrlCommit(string path, string author, string product, string commit)
         {
-            return $"https://cdn.jsdelivr.net/gh/{author}/{product}@{branch}/{path}";
+            return $"https://raw.githubusercontent.com/{author}/{product}/{commit}/{path}";
+        }
+
+        public virtual Task<string> GetLatestCommit(HttpClient client, string path)
+        {
+            return GetLatestCommit(client, ProductAuthor, ProductName, path);
+        }
+
+        public static async Task<string> GetLatestCommit(HttpClient client, string author, string repo, string path)
+        {
+            try
+            {
+                var url = new UriBuilder($"{GetGitApi(author, repo)}/commits?path={path}");
+                var response = await client.GetStringAsync(url.Uri);
+                var json = JsonNode.Parse(response);
+                return json![0]!["sha"]!?.ToString();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex);
+            }
+
+            return "";
         }
 
         //Behaviors

@@ -255,9 +255,9 @@ namespace CFIT.AppFramework.UI.ViewModels
             {
                 if ((func() && !AskConfirmation) || (AskConfirmation && func() && ConfirmationFunc?.Invoke() == true))
                 {
+                    ItemsSource.Remove(SelectedItem);
                     SelectorElement.SelectedIndex = -1;
                     ClearInputs?.Invoke();
-                    ItemsSource.Remove(SelectedItem);
                     NotifyCanExecuteChanged();
                 }
             }, func);

@@ -81,7 +81,7 @@ namespace CFIT.AppFramework.UI.ViewModels.Commands
         {
             try
             {
-                IsCanExecute = parameter != null && CheckCanExecute(parameter);
+                IsCanExecute = CheckCanExecute(parameter);
             }
             catch
             {

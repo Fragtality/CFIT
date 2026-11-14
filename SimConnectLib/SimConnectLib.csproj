@@ -14,7 +14,7 @@
     <Authors>Fragtality</Authors>
     <Product>CFIT - SimConnectLib</Product>
     <Description>Common Fragtality Installer and Tools - SimConnect Library</Description>
-    <Copyright>Copyright © 2025</Copyright>
+    <Copyright>Copyright © 2026</Copyright>
     <PackageProjectUrl>https://github.com/Fragtality/CFIT</PackageProjectUrl>
     <PackageReadmeFile>readme.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/Fragtality/CFIT</RepositoryUrl>
@@ -31,8 +31,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CFIT.AppLogger" Version="2026.300.19.2252" />
-    <PackageReference Include="CFIT.AppTools" Version="2026.300.19.2267" />
+    <PackageReference Include="CFIT.AppLogger" Version="2026.318.20.1213" />
+    <PackageReference Include="CFIT.AppTools" Version="2026.318.20.1223" />
   </ItemGroup>
 
   <ItemGroup>

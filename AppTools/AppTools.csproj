@@ -12,7 +12,7 @@
     <Authors>Fragtality</Authors>
     <Company>Fragtality</Company>
     <Description>Common Fragtality Installer and Tools - Common App Tools</Description>
-    <Copyright>Copyright © 2025</Copyright>
+    <Copyright>Copyright © 2026</Copyright>
     <PackageProjectUrl>https://github.com/Fragtality/CFIT</PackageProjectUrl>
     <RepositoryUrl>https://github.com/Fragtality/CFIT</RepositoryUrl>
     <PackageReadmeFile>readme.md</PackageReadmeFile>
@@ -30,8 +30,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CFIT.AppLogger" Version="2026.300.19.2252" />
-    <PackageReference Include="System.Text.Json" Version="10.0.14" />
+    <PackageReference Include="CFIT.AppLogger" Version="2026.318.20.1213" />
+    <PackageReference Include="System.Text.Json" Version="10.0.15" />
   </ItemGroup>
 
   <ItemGroup>
